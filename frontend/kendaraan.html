@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daftar Kendaraan — Bali Rent</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ===== PAGE HERO ===== */
+    .page-hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('images/bali-bg.jpg') center/cover no-repeat;
+      opacity: 0.15;
+    }
+    .page-hero-content { position: relative; }
+    .page-hero h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .page-hero h1 span { color: var(--accent); }
+    .page-hero p {
+      font-size: 16px;
+      opacity: 0.85;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .filter-bar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .filter-tabs { display: flex; gap: 8px; }
+    .filter-tab {
+      padding: 8px 20px;
+      border-radius: 30px;
+      border: 2px solid var(--border);
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      color: var(--text-muted);
+    }
+    .filter-tab.active, .filter-tab:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7f3;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+
+    .kendaraan-card .card-img { height: 180px; overflow: hidden; background: #e8f0eb; display: flex; align-items: center; justify-content: center; font-size: 64px; }
+    .kendaraan-card .card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .kendaraan-card .card-body { padding: 18px; }
+    .kendaraan-card .card-name { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin: 8px 0 4px; }
+    .kendaraan-card .card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .kendaraan-card .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); }
+    .kendaraan-card .price { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--primary); }
+    .kendaraan-card .price small { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text-muted); font-weight: 400; }
+    .kendaraan-card .stok { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    .empty-state { text-align: center; padding: 80px 24px; color: var(--text-muted); grid-column: 1/-1; }
+    .empty-state .icon { font-size: 56px; margin-bottom: 16px; }
+
+    .skeleton { background: linear-gradient(90deg, #e8f0eb 25%, #d4e8da 50%, #e8f0eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">
+    <img src="images/logo.png" alt="Bali Rent">
+  </a>
+  <div class="navbar-links">
+    <a href="index.html"><span>Beranda</span></a>
+    <a href="tentang.html"><span>Tentang Kami</span></a>
+    <a href="kendaraan.html" class="active"><span>Pesan Kendaraan</span></a>
+    <a href="blog.html"><span>Blog</span></a>
+    <a href="kontak.html"><span>Kontak</span></a>
+  </div>
+</nav>
+
+<!-- Page Hero -->
+<div class="page-hero">
+  <div class="page-hero-content">
+    <h1>Daftar <span>Kendaraan</span></h1>
+    <p>Pilih kendaraan yang sesuai kebutuhan dan budget Anda.</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-tabs">
+    <button class="filter-tab active" onclick="filterKendaraan('all', this)">Semua</button>
+    <button class="filter-tab" onclick="filterKendaraan('motor', this)">Motor</button>
+    <button class="filter-tab" onclick="filterKendaraan('mobil', this)">Mobil</button>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="grid" id="kendaraanGrid">
+      <div class="skeleton" style="height:320px"></div>
+      <div class="skeleton" style="height:320px"></div>
+      <div class="skeleton" style="height:320px"></div>
+      <div class="skeleton" style="height:320px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-about">
+      <img src="images/logo-footer.png" alt="Bali Rent" class="footer-logo">
+      <div class="footer-social">
+        <a href="https://www.instagram.com/itskomangbayu/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.facebook.com/bayu.wiratanaya" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="https://x.com/Isutowaru39" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+      </div>
+      <p class="copyright">© 2026 Bali Rent. All Rights Reserved.</p>
+    </div>
+
+    <div>
+      <h3>Sekilas Profil</h3>
+      <p>Bali Rent merupakan penyedia jasa rental mobil dan motor terpercaya di Bali. Kami menyediakan kendaraan yang bersih, terawat, dan siap menemani perjalanan wisata, bisnis maupun kebutuhan pribadi Anda.</p>
+    </div>
+
+    <div>
+      <h3>Kontak Kami</h3>
+      <ul>
+        <li><i class="fa-solid fa-phone"></i> +62 813-3839-5678</li>
+        <li><i class="fa-brands fa-whatsapp"></i> +62 852-2880-6200</li>
+        <li><i class="fa-solid fa-envelope"></i> balirent@gmail.com</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>Alamat Kami</h3>
+      <p>
+        <i class="fa-solid fa-location-dot"></i>
+        Jl. Teuku Umar No.10<br>
+        Denpasar Barat,<br>
+        Bali 80119
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let allKendaraan = [];
+
+  async function loadKendaraan() {
+    try {
+      const res = await fetch('/api/kendaraan');
+      const json = await res.json();
+      if (json.success) {
+        allKendaraan = json.data;
+        renderKendaraan(allKendaraan);
+      }
+    } catch(e) {
+      document.getElementById('kendaraanGrid').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Gagal memuat kendaraan. Pastikan server berjalan.</p></div>';
+    }
+  }
+
+  function filterKendaraan(jenis, btn) {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = jenis === 'all' ? allKendaraan : allKendaraan.filter(k => k.jenis === jenis);
+    renderKendaraan(filtered);
+  }
+
+  function renderKendaraan(list) {
+    const grid = document.getElementById('kendaraanGrid');
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Tidak ada kendaraan ditemukan.</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(k => `
+      <div class="card kendaraan-card">
+        <div style="position:relative;overflow:hidden;height:200px;background:#e8f0eb;">
+          ${k.foto
+            ? `<img src="/uploads/${k.foto}" alt="${k.nama}"
+                style="width:100%;height:200px;object-fit:cover;transition:transform 0.3s"
+                onmouseover="this.style.transform='scale(1.05)'"
+                onmouseout="this.style.transform='scale(1)'"
+                onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px\\'><span style=\\'font-size:64px\\'>${k.jenis==='motor'?'🛵':'🚗'}</span><span style=\\'font-size:11px;color:#aaa\\'>Foto belum tersedia</span></div>'">`
+            : `<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+                <span style="font-size:64px">${k.jenis==='motor'?'🛵':'🚗'}</span>
+                <span style="font-size:11px;color:#aaa;">Foto belum tersedia</span>
+               </div>`
+          }
+          <div style="position:absolute;top:10px;left:10px;">
+            <span class="badge badge-${k.jenis}">${k.jenis === 'motor' ? 'Motor' : 'Mobil'}</span>
+          </div>
+          <div style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.55);color:white;font-size:11px;padding:3px 8px;border-radius:10px;">
+            📦 ${k.stok} unit
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">${k.nama}</div>
+          <div class="card-desc">${k.deskripsi || '-'}</div>
+          <div class="card-footer" style="margin-top:12px">
+            <div class="price">Rp ${Number(k.harga_per_hari).toLocaleString('id-ID')} <small>/hari</small></div>
+            <a href="pesan.html?id=${k.id}" class="btn btn-primary btn-sm">Pesan →</a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadWaNumber() {
+    try {
+      const res = await fetch('/api/config');
+      const json = await res.json();
+      document.getElementById('ctaWa').href = `https://wa.me/${json.wa_number}`;
+    } catch(e) {}
+  }
+
+  loadKendaraan();
+  loadWaNumber();
+</script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pesan Kendaraan — Bali Rent</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ===== PAGE HERO ===== */
+    .page-hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('images/bali-bg.jpg') center/cover no-repeat;
+      opacity: 0.15;
+    }
+    .page-hero-content { position: relative; }
+    .page-hero h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .page-hero h1 span { color: var(--accent); }
+    .page-hero p {
+      font-size: 16px;
+      opacity: 0.85;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .pesan-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 32px;
+      max-width: 1000px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+
+    .form-card { background: white; border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); }
+    .form-card h2 { font-size: 22px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .summary-card { background: white; border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); height: fit-content; position: sticky; top: 80px; }
+    .summary-card h3 { font-size: 17px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+    .kendaraan-preview { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+    .kendaraan-preview .icon { font-size: 40px; background: #e8f0eb; border-radius: 8px; padding: 8px 12px; }
+    .kendaraan-preview .info .name { font-weight: 700; font-size: 15px; }
+    .kendaraan-preview .info .harga { color: var(--primary); font-weight: 600; font-size: 14px; }
+
+    .summary-row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
+    .summary-row.total { border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 16px; color: var(--primary); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      margin-top: 16px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Success modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    }
+    .modal .success-icon { font-size: 64px; margin-bottom: 16px; }
+    .modal h2 { font-size: 24px; margin-bottom: 8px; }
+    .modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+    .modal .detail-box {
+      background: #f8f9f5;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: left;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .modal .detail-box strong { color: var(--primary); }
+
+    @media (max-width: 768px) {
+      .pesan-layout { grid-template-columns: 1fr; }
+      .summary-card { position: static; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">
+    <img src="images/logo.png" alt="Bali Rent">
+  </a>
+  <div class="navbar-links">
+    <a href="index.html"><span>Beranda</span></a>
+    <a href="tentang.html"><span>Tentang Kami</span></a>
+    <a href="kendaraan.html"><span>Pesan Kendaraan</span></a>
+    <a href="blog.html"><span>Blog</span></a>
+    <a href="kontak.html"><span>Kontak</span></a>
+  </div>
+</nav>
+
+<!-- Page Hero -->
+<div class="page-hero">
+  <div class="page-hero-content">
+    <h1>Form <span>Pemesanan</span></h1>
+    <p>Isi data di bawah dan kami akan konfirmasi via WhatsApp.</p>
+  </div>
+</div>
+
+<div class="pesan-layout">
+  <!-- Form -->
+  <div class="form-card">
+    <h2>Data Pemesan</h2>
+    <div id="alertBox" class="alert"></div>
+
+    <div class="form-group">
+      <label>Nama Lengkap *</label>
+      <input type="text" id="nama" class="form-control" placeholder="Sesuai KTP" required />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nomor HP / WhatsApp *</label>
+        <input type="tel" id="noHp" class="form-control" placeholder="08xx-xxxx-xxxx" required />
+      </div>
+      <div class="form-group">
+        <label>Nomor KTP *</label>
+        <input type="text" id="noKtp" class="form-control" placeholder="16 digit NIK" required />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Pilih Kendaraan *</label>
+      <select id="kendaraanSelect" class="form-control" onchange="updateKendaraan()" required>
+        <option value="">-- Pilih Kendaraan --</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tanggal Mulai Sewa *</label>
+        <input type="date" id="tanggalMulai" class="form-control" onchange="hitungHarga()" required />
+      </div>
+      <div class="form-group">
+        <label>Tanggal Selesai Sewa *</label>
+        <input type="date" id="tanggalSelesai" class="form-control" onchange="hitungHarga()" required />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Alamat Pengantaran <span style="color:var(--text-muted);font-weight:400">(opsional)</span></label>
+      <input type="text" id="alamatAntar" class="form-control" placeholder="Kosongkan jika ambil sendiri di tempat kami" />
+    </div>
+
+    <div class="form-group">
+      <label>Catatan Tambahan <span style="color:var(--text-muted);font-weight:400">(opsional)</span></label>
+      <textarea id="catatan" class="form-control" rows="3" placeholder="Misal: perlu helm ekstra, rak bagasi, dll."></textarea>
+    </div>
+
+    <button class="btn btn-wa btn-submit" onclick="submitPemesanan()">
+      💬 Pesan via WhatsApp
+    </button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-card">
+    <h3>Ringkasan Pesanan</h3>
+    <div class="kendaraan-preview" id="kendaraanPreview">
+      <div class="icon">🏍️</div>
+      <div class="info">
+        <div class="name">Belum dipilih</div>
+        <div class="harga">-</div>
+      </div>
+    </div>
+    <div class="summary-row"><span>Harga/hari</span><span id="sumHarga">-</span></div>
+    <div class="summary-row"><span>Lama sewa</span><span id="sumLama">-</span></div>
+    <div class="summary-row total"><span>Total</span><span id="sumTotal">-</span></div>
+    <div style="margin-top:16px;padding:12px;background:#f0f7f3;border-radius:8px;font-size:13px;color:var(--primary)">
+      ✅ Gratis antar jemput area Denpasar<br>
+      ✅ Sudah termasuk helm & jas hujan<br>
+      ✅ Tanyakan lebih lanjut via WhatsApp
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sukses -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="success-icon">✅</div>
+    <h2>Pemesanan Tercatat!</h2>
+    <p>Data Anda sudah disimpan. Klik tombol di bawah untuk konfirmasi langsung via WhatsApp.</p>
+    <div class="detail-box" id="modalDetail"></div>
+    <button class="btn btn-wa btn-lg" style="width:100%" onclick="bukaWhatsApp()">
+      💬 Konfirmasi via WhatsApp
+    </button>
+    <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="tutupModal()">
+      Kembali ke Beranda
+    </button>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-about">
+      <img src="images/logo-footer.png" alt="Bali Rent" class="footer-logo">
+      <div class="footer-social">
+        <a href="https://www.instagram.com/itskomangbayu/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.facebook.com/bayu.wiratanaya" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="https://x.com/Isutowaru39" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+      </div>
+      <p class="copyright">© 2026 Bali Rent. All Rights Reserved.</p>
+    </div>
+
+    <div>
+      <h3>Sekilas Profil</h3>
+      <p>Bali Rent merupakan penyedia jasa rental mobil dan motor terpercaya di Bali. Kami menyediakan kendaraan yang bersih, terawat, dan siap menemani perjalanan wisata, bisnis maupun kebutuhan pribadi Anda.</p>
+    </div>
+
+    <div>
+      <h3>Kontak Kami</h3>
+      <ul>
+        <li><i class="fa-solid fa-phone"></i> +62 813-3839-5678</li>
+        <li><i class="fa-brands fa-whatsapp"></i> +62 852-2880-6200</li>
+        <li><i class="fa-solid fa-envelope"></i> balirent@gmail.com</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>Alamat Kami</h3>
+      <p>
+        <i class="fa-solid fa-location-dot"></i>
+        Jl. Teuku Umar No.10<br>
+        Denpasar Barat,<br>
+        Bali 80119
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let kendaraanData = [];
+  let waNumber = '6281234567890';
+  let pesanWA = '';
+
+  // Set tanggal minimal = hari ini
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('tanggalMulai').min = today;
+  document.getElementById('tanggalSelesai').min = today;
+
+  async function init() {
+    // Load WA number
+    try {
+      const res = await fetch('/api/config');
+      const json = await res.json();
+      waNumber = json.wa_number;
+    } catch(e) {}
+
+    // Load kendaraan
+    try {
+      const res = await fetch('/api/kendaraan');
+      const json = await res.json();
+      if (json.success) {
+        kendaraanData = json.data;
+        const sel = document.getElementById('kendaraanSelect');
+        kendaraanData.forEach(k => {
+          const opt = document.createElement('option');
+          opt.value = k.id;
+          opt.textContent = `${k.nama} — Rp ${Number(k.harga_per_hari).toLocaleString('id-ID')}/hari`;
+          opt.dataset.harga = k.harga_per_hari;
+          opt.dataset.nama = k.nama;
+          opt.dataset.jenis = k.jenis;
+          opt.dataset.foto = k.foto || '';
+          sel.appendChild(opt);
+        });
+
+        // Auto-select jika ada ?id= di URL
+        const params = new URLSearchParams(location.search);
+        const idParam = params.get('id');
+        if (idParam) {
+          sel.value = idParam;
+          updateKendaraan();
+        }
+      }
+    } catch(e) {}
+  }
+
+  function updateKendaraan() {
+    hitungHarga();
+    const sel = document.getElementById('kendaraanSelect');
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) {
+      document.getElementById('kendaraanPreview').innerHTML = `<div class="icon">🏍️</div><div class="info"><div class="name">Belum dipilih</div><div class="harga">-</div></div>`;
+      return;
+    }
+    const icon = opt.dataset.jenis === 'motor' ? '🛵' : '🚗';
+    const foto = opt.dataset.foto;
+    const imgHtml = foto
+      ? `<img src="/uploads/${foto}" alt="${opt.dataset.nama}" style="width:64px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" onerror="this.outerHTML='<span style=\\'font-size:40px\\'>${icon}</span>'">`
+      : `<span style="font-size:40px;background:#e8f0eb;padding:6px 10px;border-radius:8px;">${icon}</span>`;
+    document.getElementById('kendaraanPreview').innerHTML = `
+      ${imgHtml}
+      <div class="info">
+        <div class="name">${opt.dataset.nama}</div>
+        <div class="harga">Rp ${Number(opt.dataset.harga).toLocaleString('id-ID')}/hari</div>
+      </div>
+    `;
+  }
+
+  function hitungHarga() {
+    const mulai = document.getElementById('tanggalMulai').value;
+    const selesai = document.getElementById('tanggalSelesai').value;
+    const sel = document.getElementById('kendaraanSelect');
+    const harga = sel.options[sel.selectedIndex]?.dataset?.harga;
+
+    if (mulai && selesai && harga) {
+      const d1 = new Date(mulai), d2 = new Date(selesai);
+      const lama = Math.ceil((d2 - d1) / (1000*60*60*24));
+      if (lama > 0) {
+        const total = lama * parseInt(harga);
+        document.getElementById('sumHarga').textContent = `Rp ${Number(harga).toLocaleString('id-ID')}`;
+        document.getElementById('sumLama').textContent = `${lama} hari`;
+        document.getElementById('sumTotal').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+        return;
+      }
+    }
+    document.getElementById('sumHarga').textContent = '-';
+    document.getElementById('sumLama').textContent = '-';
+    document.getElementById('sumTotal').textContent = '-';
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('alertBox');
+    el.textContent = msg;
+    el.className = `alert alert-${type} show`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function submitPemesanan() {
+    const nama = document.getElementById('nama').value.trim();
+    const noHp = document.getElementById('noHp').value.trim();
+    const noKtp = document.getElementById('noKtp').value.trim();
+    const kendaraanId = document.getElementById('kendaraanSelect').value;
+    const tanggalMulai = document.getElementById('tanggalMulai').value;
+    const tanggalSelesai = document.getElementById('tanggalSelesai').value;
+    const alamatAntar = document.getElementById('alamatAntar').value.trim();
+    const catatan = document.getElementById('catatan').value.trim();
+
+    if (!nama || !noHp || !noKtp || !kendaraanId || !tanggalMulai || !tanggalSelesai) {
+      showAlert('⚠️ Semua field bertanda * wajib diisi!', 'error');
+      return;
+    }
+    if (new Date(tanggalSelesai) <= new Date(tanggalMulai)) {
+      showAlert('⚠️ Tanggal selesai harus setelah tanggal mulai!', 'error');
+      return;
+    }
+
+    const btn = document.querySelector('.btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+    try {
+      const res = await fetch('/api/pemesanan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nama_pemesan: nama, no_hp: noHp, no_ktp: noKtp, kendaraan_id: kendaraanId, tanggal_mulai: tanggalMulai, tanggal_selesai: tanggalSelesai, alamat_antar: alamatAntar, catatan }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        const d = json.data;
+        // Siapkan pesan WhatsApp
+        pesanWA = `*PEMESANAN BALI RENT*\n\n` +
+          `*Nama*        : ${nama}\n` +
+          `*No HP*       : ${noHp}\n` +
+          `*No KTP*      : ${noKtp}\n` +
+          `*Kendaraan*   : ${d.nama_kendaraan}\n` +
+          `*Tgl Mulai*   : ${tanggalMulai}\n` +
+          `*Tgl Selesai* : ${tanggalSelesai}\n` +
+          `*Lama Sewa*   : ${d.lama_sewa} hari\n` +
+          `*Total Harga* : Rp ${Number(d.total_harga).toLocaleString('id-ID')}\n` +
+          `*Alamat Antar*: ${alamatAntar || '-'}\n` +
+          (catatan ? `*Catatan*     : ${catatan}\n` : '') +
+          `\nMohon konfirmasi pemesanan saya. Terima kasih!`;
+
+        document.getElementById('modalDetail').innerHTML =
+          `<strong>Kendaraan:</strong> ${d.nama_kendaraan}<br>` +
+          `<strong>Tanggal:</strong> ${tanggalMulai} s/d ${tanggalSelesai}<br>` +
+          `<strong>Lama Sewa:</strong> ${d.lama_sewa} hari<br>` +
+          `<strong>Total Harga:</strong> Rp ${Number(d.total_harga).toLocaleString('id-ID')}`;
+
+        document.getElementById('modalOverlay').classList.add('show');
+      } else {
+        showAlert('❌ ' + json.message, 'error');
+      }
+    } catch(e) {
+      showAlert('❌ Gagal terhubung ke server. Pastikan server berjalan.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '💬 Pesan via WhatsApp';
+  }
+
+  function bukaWhatsApp() {
+    const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(pesanWA)}`;
+    window.open(url, '_blank');
+    tutupModal();
+  }
+
+  function tutupModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    location.href = 'index.html';
+  }
+
+  init();
+</script>
+</body>
+</html>

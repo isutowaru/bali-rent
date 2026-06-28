@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bali Rent — Rental Kendaraan Denpasar</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Hero */
+    .hero {
+    background: url("images/bali-bg.jpg") center center/cover no-repeat;
+    color: white;
+    padding: 80px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+    .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+}
+    .hero-content { position: relative; max-width: 640px; margin: 0 auto; }
+    .hero-eyebrow {
+      display: inline-block;
+      background: rgba(245,166,35,0.25);
+      color: var(--accent);
+      border: 1px solid rgba(245,166,35,0.4);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: 0.05em;
+    }
+    .hero h1 { font-size: clamp(32px, 6vw, 52px); margin-bottom: 16px; font-weight: 800; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { font-size: 17px; opacity: 0.85; margin-bottom: 36px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 56px;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      flex-wrap: wrap;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat .number { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--accent); }
+    .hero-stat .label { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+
+    /* Kendaraan section */
+    .section-title { text-align: center; margin-bottom: 40px; }
+    .section-title h2 { font-size: 32px; margin-bottom: 8px; }
+    .section-title p { color: var(--text-muted); }
+
+    .filter-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 32px; }
+    .filter-tab {
+      padding: 8px 20px;
+      border-radius: 30px;
+      border: 2px solid var(--border);
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      color: var(--text-muted);
+    }
+    .filter-tab.active, .filter-tab:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7f3;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+
+    .kendaraan-card { cursor: pointer; }
+    .kendaraan-card .card-img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background: #e8f0eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+    }
+    .kendaraan-card .card-body { padding: 18px; }
+    .kendaraan-card .card-name { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin: 8px 0 4px; }
+    .kendaraan-card .card-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .kendaraan-card .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); }
+    .kendaraan-card .price { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--primary); }
+    .kendaraan-card .price small { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+    /* Cara sewa */
+    .cara-sewa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+    .cara-step { text-align: center; padding: 32px 24px; background: white; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .step-icon { font-size: 40px; margin-bottom: 16px; }
+    .step-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step-desc { font-size: 13px; color: var(--text-muted); }
+
+    /* CTA */
+    .cta-section {
+    background:
+        linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)),
+        url("images/cta-bg.jpg");
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    color: white;
+    padding: 64px 24px;
+    text-align: center;
+    border-radius: var(--radius);
+    margin: 0 24px;
+    overflow: hidden;
+}
+    .cta-section h2 { font-size: 28px; margin-bottom: 12px; }
+    .cta-section p { opacity: 0.85; margin-bottom: 28px; }
+
+    /* Loading skeleton */
+    .skeleton { background: linear-gradient(90deg, #e8f0eb 25%, #d4e8da 50%, #e8f0eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">
+    <img src="images/logo.png" alt="Bali Rent">
+</a>
+  <div class="navbar-links">
+    <a href="index.html" class="active"><span>Beranda</span></a>
+    <a href="tentang.html"><span>Tentang Kami</span></a>
+    <a href="kendaraan.html"><span>Pesan Kendaraan</span></a>
+    <a href="blog.html"><span>Blog</span></a>
+    <a href="kontak.html"><span>Kontak</span></a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-eyebrow">Melayani Area Denpasar & Sekitarnya</div>
+    <h1>Rental Kendaraan <span>Terpercaya</span> di Bali</h1>
+    <p>Motor & mobil berkualitas dengan harga terjangkau. Pesan sekarang, kendaraan diantar ke lokasi Anda.</p>
+    <div class="hero-actions">
+  <a href="kendaraan.html" class="btn btn-accent btn-lg">
+    Pesan Kendaraan
+  </a>
+</div>
+</section>
+
+<!-- Tentang Kami -->
+<section class="section tentang-kami">
+    <div class="container">
+
+        <div class="tentang-grid">
+
+            <!-- Kiri -->
+            <div class="tentang-text">
+
+                <span class="sub-title">
+                    Sekilas Tentang Kami
+                </span>
+
+                <h2>Bali Rent</h2>
+
+                <p>
+                    Bali Rent merupakan penyedia jasa rental mobil dan motor di
+                    Bali yang mengutamakan kenyamanan, keamanan, dan pelayanan
+                    terbaik bagi pelanggan.
+                </p>
+
+                <p>
+                    Kami menyediakan berbagai pilihan kendaraan yang selalu
+                    dalam kondisi prima, harga terjangkau, serta proses
+                    pemesanan yang cepat dan mudah. Kendaraan dapat diantar
+                    langsung ke hotel, bandara, maupun lokasi Anda.
+                </p>
+
+                <p>
+                    Dengan pelayanan profesional dan dukungan customer service
+                    24 jam, Bali Rent siap menjadi partner perjalanan Anda
+                    selama berada di Pulau Bali.
+                </p>
+
+                <a href="kendaraan.html" class="btn btn-accent">
+                    Lihat Kendaraan
+                </a>
+
+            </div>
+
+            <!-- Kanan -->
+            <div class="tentang-image">
+
+                <img src="images/about-car.png" alt="Rental Mobil">
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- ======================
+     SYARAT & KETENTUAN
+====================== -->
+<section class="section syarat-section">
+
+    <div class="container">
+
+        <div class="section-title">
+            <h2>Syarat & Ketentuan Rental</h2>
+            <p>Mohon membaca syarat dan ketentuan sebelum melakukan pemesanan kendaraan.</p>
+        </div>
+
+        <div class="syarat-box">
+
+            <ol>
+
+                <li>Menunjukkan KTP yang masih berlaku.</li>
+
+                <li>Menunjukkan SIM A (untuk mobil) atau SIM C (untuk motor).</li>
+
+                <li>Mengisi formulir pemesanan dengan data yang benar.</li>
+
+                <li>Kendaraan hanya digunakan di wilayah Bali.</li>
+
+                <li>Penyewa bertanggung jawab atas kendaraan selama masa sewa.</li>
+
+                <li>BBM dikembalikan sesuai kondisi awal saat diterima.</li>
+
+                <li>Dilarang memindahtangankan kendaraan kepada pihak lain.</li>
+
+                <li>Kerusakan akibat kelalaian penyewa menjadi tanggung jawab penyewa.</li>
+
+                <li>Pembatalan pemesanan mengikuti kebijakan Bali Rent.</li>
+
+                <li>Pembayaran DP dilakukan sebelum kendaraan disiapkan.</li>
+
+            </ol>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- Cara Sewa -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="section-title">
+      <h2>Cara Sewa Mudah</h2>
+      <p>Proses pemesanan cepat, kendaraan langsung siap</p>
+    </div>
+    <div class="cara-sewa-grid">
+
+    <div class="cara-step">
+        <div class="step-icon">
+            <i class="fa-solid fa-car-side"></i>
+        </div>
+        <div class="step-title">Pilih Kendaraan</div>
+        <div class="step-desc">
+            Lihat koleksi motor dan mobil kami, pilih yang sesuai kebutuhan dan budget.
+        </div>
+    </div>
+
+    <div class="cara-step">
+        <div class="step-icon">
+            <i class="fa-solid fa-file-signature"></i>
+        </div>
+        <div class="step-title">Isi Form Pemesanan</div>
+        <div class="step-desc">
+            Lengkapi data diri, tanggal sewa, dan alamat pengantaran kendaraan.
+        </div>
+    </div>
+
+    <div class="cara-step">
+        <div class="step-icon">
+            <i class="fa-brands fa-whatsapp"></i>
+        </div>
+        <div class="step-title">Konfirmasi via WhatsApp</div>
+        <div class="step-desc">
+            Otomatis diarahkan ke WhatsApp kami untuk konfirmasi dan pembayaran.
+        </div>
+    </div>
+
+    <div class="cara-step">
+        <div class="step-icon">
+            <i class="fa-solid fa-key"></i>
+        </div>
+        <div class="step-title">Kendaraan Siap</div>
+        <div class="step-desc">
+            Kendaraan diantar ke lokasi Anda atau bisa diambil langsung di tempat kami.
+        </div>
+    </div>
+
+</div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section">
+  <div class="container">
+    <div class="cta-section">
+      <h2>Siap Sewa Kendaraan?</h2>
+      <p>Hubungi kami sekarang dan dapatkan kendaraan terbaik untuk perjalanan Anda di Bali.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a href="kendaraan.html" class="btn btn-accent btn-lg">
+          <i class="fa-solid fa-calendar-check" style="margin-right:6px"></i> Pesan Sekarang
+        </a>
+        <a id="ctaWa" href="#" class="btn btn-wa btn-lg" target="_blank">
+          <i class="fa-brands fa-whatsapp" style="margin-right:6px"></i> Chat WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+    <div class="container footer-grid">
+
+        <!-- Logo -->
+        <div class="footer-about">
+            <img src="images/logo-footer.png" alt="Bali Rent" class="footer-logo">
+            <div class="footer-social">
+                <a href="https://www.instagram.com/itskomangbayu/" target="_blank">
+        <i class="fa-brands fa-instagram"></i>
+    </a>
+    <a href="https://www.facebook.com/bayu.wiratanaya" target="_blank">
+        <i class="fa-brands fa-facebook-f"></i>
+    </a>
+    <a href="https://x.com/Isutowaru39" target="_blank">
+        <i class="fa-brands fa-x-twitter"></i>
+    </a>
+            </div>
+            <p class="copyright">
+                © 2026 Bali Rent. All Rights Reserved.
+            </p>
+        </div>
+
+        <!-- Profil -->
+        <div>
+            <h3>Sekilas Profil</h3>
+            <p>
+                Bali Rent merupakan penyedia jasa rental mobil dan motor
+                terpercaya di Bali. Kami menyediakan kendaraan yang
+                bersih, terawat, dan siap menemani perjalanan wisata,
+                bisnis maupun kebutuhan pribadi Anda.
+            </p>
+        </div>
+
+        <!-- Kontak -->
+        <div>
+            <h3>Kontak Kami</h3>
+            <ul>
+                <li><i class="fa-solid fa-phone"></i> +62 813-3839-5678</li>
+                <li><i class="fa-brands fa-whatsapp"></i> +62 852-2880-6200</li>
+                <li><i class="fa-solid fa-envelope"></i> balirent@gmail.com</li>
+            </ul>
+        </div>
+
+        <!-- Alamat -->
+        <div>
+            <h3>Alamat Kami</h3>
+            <p>
+                <i class="fa-solid fa-location-dot"></i>
+                Jl. Teuku Umar No.10<br>
+                Denpasar Barat,<br>
+                Bali 80119
+            </p>
+        </div>
+    </div>
+</footer>
+
+<script>
+  async function loadWaNumber() {
+    try {
+      const res = await fetch('/api/config');
+      const json = await res.json();
+      document.getElementById('ctaWa').href = `https://wa.me/${json.wa_number}`;
+    } catch(e) {}
+  }
+  loadWaNumber();
+</script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kontak Kami — Bali Rent</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Page Hero */
+    .page-hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      color: white;
+      padding: 64px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('images/bali-bg.jpg') center/cover no-repeat;
+      opacity: 0.15;
+    }
+    .page-hero-content { position: relative; }
+    .page-hero h1 { font-size: clamp(28px,5vw,44px); font-weight: 800; margin-bottom: 10px; }
+    .page-hero h1 span { color: var(--accent); }
+    .page-hero p { font-size: 16px; opacity: 0.85; max-width: 500px; margin: 0 auto; }
+
+    /* Kontak Grid */
+    .kontak-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 40px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .kontak-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Info Cards */
+    .info-cards { display: flex; flex-direction: column; gap: 16px; }
+    .info-card {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      transition: all 0.2s;
+    }
+    .info-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+      transform: translateX(4px);
+    }
+    .info-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .info-icon.green { background: rgba(26,107,58,0.1); color: var(--primary); }
+    .info-icon.wa    { background: rgba(37,211,102,0.12); color: #25d366; }
+    .info-icon.email { background: rgba(245,166,35,0.12); color: var(--accent); }
+    .info-icon.loc   { background: rgba(239,68,68,0.1); color: #ef4444; }
+    .info-icon.clock { background: rgba(99,102,241,0.1); color: #6366f1; }
+
+    .info-card-text h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+    .info-card-text p { font-size: 15px; font-weight: 600; color: var(--text); margin: 0; }
+    .info-card-text small { font-size: 12px; color: var(--text-muted); }
+    .info-card-text a { color: var(--primary); }
+    .info-card-text a:hover { text-decoration: underline; }
+
+    /* Sosial Media */
+    .sosmed-section { margin-top: 24px; }
+    .sosmed-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .sosmed-icons { display: flex; gap: 10px; }
+    .sosmed-btn {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      color: white;
+      transition: transform 0.2s, opacity 0.2s;
+      text-decoration: none;
+    }
+    .sosmed-btn:hover { transform: translateY(-3px); opacity: 0.88; }
+    .sosmed-btn.ig  { background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+    .sosmed-btn.fb  { background: #1877f2; }
+    .sosmed-btn.tw  { background: #000; }
+    .sosmed-btn.wa  { background: #25d366; }
+
+    /* Form */
+    .form-card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 36px 32px;
+    }
+    .form-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .form-card .form-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,107,58,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Toast */
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 13px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .toast.success { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
+    .toast.error   { background: #fef2f2; border: 1.5px solid #fca5a5; color: #dc2626; }
+
+    /* Map */
+    .map-section { background: white; }
+    .map-wrapper {
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      height: 380px;
+    }
+    .map-wrapper iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+    /* Jam Operasional */
+    .jam-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .jam-table tr { border-bottom: 1px solid var(--border); }
+    .jam-table tr:last-child { border-bottom: none; }
+    .jam-table td { padding: 10px 0; }
+    .jam-table td:last-child { text-align: right; font-weight: 600; color: var(--primary); }
+    .jam-table .hari-ini td { background: rgba(26,107,58,0.06); border-radius: 4px; }
+    .badge-buka {
+      display: inline-block;
+      background: #dcfce7; color: #15803d;
+      font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 20px;
+      margin-left: 6px;
+    }
+
+    .section-title { text-align: center; margin-bottom: 40px; }
+    .section-title h2 { font-size: 30px; margin-bottom: 8px; }
+    .section-title p { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">
+    <img src="images/logo.png" alt="Bali Rent">
+  </a>
+  <div class="navbar-links">
+    <a href="index.html"><span>Beranda</span></a>
+    <a href="tentang.html"><span>Tentang Kami</span></a>
+    <a href="kendaraan.html"><span>Pesan Kendaraan</span></a>
+    <a href="blog.html"><span>Blog</span></a>
+    <a href="kontak.html" class="active"><span>Kontak</span></a>
+  </div>
+</nav>
+
+<!-- Page Hero -->
+<div class="page-hero">
+  <div class="page-hero-content">
+    <h1>Hubungi <span>Kami</span></h1>
+    <p>Kami siap membantu kebutuhan rental kendaraan Anda. Jangan ragu untuk menghubungi kami kapan saja.</p>
+  </div>
+</div>
+
+<!-- Kontak Utama -->
+<section class="section">
+  <div class="container">
+    <div class="kontak-grid">
+
+      <!-- Kiri: Info Kontak -->
+      <div>
+        <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">Informasi Kontak</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px">Pilih cara yang paling mudah untuk menghubungi kami.</p>
+
+        <div class="info-cards">
+          <div class="info-card">
+            <div class="info-icon green"><i class="fa-solid fa-phone"></i></div>
+            <div class="info-card-text">
+              <h4>Telepon</h4>
+              <p><a href="tel:+6281338395678">+62 813-3839-5678</a></p>
+              <small>Senin–Minggu, 08.00–20.00 WITA</small>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon wa"><i class="fa-brands fa-whatsapp"></i></div>
+            <div class="info-card-text">
+              <h4>WhatsApp</h4>
+              <p><a id="waLink" href="#" target="_blank">+62 852-2880-6200</a></p>
+              <small>Respon cepat, siap 24 jam</small>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon email"><i class="fa-solid fa-envelope"></i></div>
+            <div class="info-card-text">
+              <h4>Email</h4>
+              <p><a href="mailto:balirent@gmail.com">balirent@gmail.com</a></p>
+              <small>Dibalas dalam 1×24 jam kerja</small>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon loc"><i class="fa-solid fa-location-dot"></i></div>
+            <div class="info-card-text">
+              <h4>Alamat</h4>
+              <p>Jl. Teuku Umar No.10</p>
+              <small>Denpasar Barat, Bali 80119</small>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon clock"><i class="fa-solid fa-clock"></i></div>
+            <div class="info-card-text">
+              <h4>Jam Operasional</h4>
+              <p>Senin – Minggu</p>
+              <small>08.00 – 20.00 WITA (setiap hari)</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sosial Media -->
+        <div class="sosmed-section">
+          <h3>Ikuti Kami</h3>
+          <div class="sosmed-icons">
+            <a href="https://www.instagram.com/itskomangbayu/" target="_blank" class="sosmed-btn ig" title="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a href="https://www.facebook.com/bayu.wiratanaya" target="_blank" class="sosmed-btn fb" title="Facebook">
+              <i class="fa-brands fa-facebook-f"></i>
+            </a>
+            <a href="https://x.com/Isutowaru39" target="_blank" class="sosmed-btn tw" title="X / Twitter">
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+            <a id="waIconLink" href="#" target="_blank" class="sosmed-btn wa" title="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kanan: Form Pesan -->
+      <div class="form-card">
+        <h3>Kirim Pesan</h3>
+        <p class="form-desc">Isi formulir di bawah dan kami akan segera membalas pesan Anda.</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="inputNama">Nama Lengkap <span style="color:#ef4444">*</span></label>
+            <input type="text" id="inputNama" placeholder="Nama Anda">
+          </div>
+          <div class="form-group">
+            <label for="inputTelp">No. Telepon <span style="color:#ef4444">*</span></label>
+            <input type="tel" id="inputTelp" placeholder="+62 8xx-xxxx-xxxx">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="inputEmail">Email</label>
+          <input type="email" id="inputEmail" placeholder="email@contoh.com">
+        </div>
+
+        <div class="form-group">
+          <label for="inputTopik">Topik Pesan <span style="color:#ef4444">*</span></label>
+          <select id="inputTopik">
+            <option value="">— Pilih Topik —</option>
+            <option value="Informasi Sewa Kendaraan">Informasi Sewa Kendaraan</option>
+            <option value="Konfirmasi Pemesanan">Konfirmasi Pemesanan</option>
+            <option value="Pembatalan Pemesanan">Pembatalan Pemesanan</option>
+            <option value="Keluhan / Saran">Keluhan / Saran</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="inputPesan">Pesan <span style="color:#ef4444">*</span></label>
+          <textarea id="inputPesan" placeholder="Tuliskan pesan Anda di sini..."></textarea>
+        </div>
+
+        <button class="btn-submit" id="btnKirim" onclick="kirimPesan()">
+          <i class="fa-brands fa-whatsapp"></i>
+          Kirim via WhatsApp
+        </button>
+
+        <div id="toastMsg" class="toast"></div>
+
+        <p style="font-size:12px;color:var(--text-muted);margin-top:14px;text-align:center">
+          <i class="fa-solid fa-lock" style="margin-right:4px"></i>
+          Data Anda aman dan tidak akan dibagikan kepada pihak ketiga.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Peta Lokasi -->
+<section class="section map-section">
+  <div class="container">
+    <div class="section-title">
+      <h2>Lokasi Kami</h2>
+      <p>Jl. Teuku Umar No.10, Denpasar Barat, Bali 80119</p>
+    </div>
+    <div class="map-wrapper">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3944.0!2d115.200!3d-8.650!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd23f00000000%3A0x0!2sJl.+Teuku+Umar%2C+Denpasar+Barat%2C+Bali!5e0!3m2!1sid!2sid!4v1700000000000"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <a href="https://maps.google.com/?q=Jl.+Teuku+Umar+No.10+Denpasar+Bali"
+         target="_blank" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px">
+        <i class="fa-solid fa-map-location-dot"></i> Buka di Google Maps
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-about">
+      <img src="images/logo-footer.png" alt="Bali Rent" class="footer-logo">
+      <div class="footer-social">
+        <a href="https://www.instagram.com/itskomangbayu/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.facebook.com/bayu.wiratanaya" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="https://x.com/Isutowaru39" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+      </div>
+      <p class="copyright">© 2026 Bali Rent. All Rights Reserved.</p>
+    </div>
+    <div>
+      <h3>Sekilas Profil</h3>
+      <p>Bali Rent merupakan penyedia jasa rental mobil dan motor terpercaya di Bali. Kami menyediakan kendaraan yang bersih, terawat, dan siap menemani perjalanan Anda.</p>
+    </div>
+    <div>
+      <h3>Kontak Kami</h3>
+      <ul>
+        <li><i class="fa-solid fa-phone"></i> +62 813-3839-5678</li>
+        <li><i class="fa-brands fa-whatsapp"></i> +62 852-2880-6200</li>
+        <li><i class="fa-solid fa-envelope"></i> balirent@gmail.com</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Alamat Kami</h3>
+      <p>
+        <i class="fa-solid fa-location-dot"></i>
+        Jl. Teuku Umar No.10<br>
+        Denpasar Barat,<br>
+        Bali 80119
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+
+  function showToast(type, msg) {
+    const el = document.getElementById('toastMsg');
+    el.className = `toast ${type}`;
+    el.style.display = 'flex';
+    el.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-exclamation'}"></i> ${msg}`;
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+
+  function kirimPesan() {
+    const nama   = document.getElementById('inputNama').value.trim();
+    const telp   = document.getElementById('inputTelp').value.trim();
+    const email  = document.getElementById('inputEmail').value.trim();
+    const topik  = document.getElementById('inputTopik').value;
+    const pesan  = document.getElementById('inputPesan').value.trim();
+
+    if (!nama || !telp || !topik || !pesan) {
+      showToast('error', 'Harap lengkapi semua kolom yang wajib diisi.');
+      return;
+    }
+
+    const teks = `Halo Bali Rent!
+
+*Nama:* ${nama}
+*Telepon:* ${telp}${email ? `\n*Email:* ${email}` : ''}
+*Topik:* ${topik}
+
+*Pesan:*
+${pesan}`;
+
+    const waHref = document.getElementById('waLink').href;
+    const noWa = waHref.replace('https://wa.me/', '') || '6285228806200';
+    window.open(`https://wa.me/${noWa}?text=${encodeURIComponent(teks)}`, '_blank');
+    showToast('success', 'Membuka WhatsApp... Pesan Anda siap dikirim!');
+  }
+
+  async function loadWaNumber() {
+    try {
+      const res = await fetch('/api/config');
+      const json = await res.json();
+      const no = json.wa_number;
+      const waUrl = `https://wa.me/${no}`;
+      document.getElementById('waLink').href = waUrl;
+      document.getElementById('waIconLink').href = waUrl;
+    } catch(e) {}
+  }
+
+  renderJamTable();
+  loadWaNumber();
+</script>
+</body>
+</html>

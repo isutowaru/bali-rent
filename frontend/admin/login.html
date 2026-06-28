@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Admin — Bali Rent</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    body { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box { background: white; border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 380px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .brand { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--primary); }
+    .login-logo .brand span { color: var(--accent); }
+    .login-logo p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .btn-login { width: 100%; padding: 13px; font-size: 15px; }
+  </style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-logo">
+    <img src="../images/logo.png" alt="Bali Rent" style="height:150px;object-fit:contain;margin:0 auto 6px;display:block">
+    <p>Panel Admin</p>
+  </div>
+  <div id="alertBox" class="alert"></div>
+  <div class="form-group">
+    <label>Username</label>
+    <input type="text" id="username" class="form-control" placeholder="admin" />
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="password" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter') login()" />
+  </div>
+  <button class="btn btn-primary btn-login" onclick="login()">Masuk</button>
+</div>
+
+<script>
+  // Kalau sudah login, langsung ke dashboard
+  if (localStorage.getItem('balirent_token')) {
+    const expiry = localStorage.getItem('balirent_expiry');
+    if (expiry && Date.now() < parseInt(expiry)) {
+      location.href = 'dashboard.html';
+    } else {
+      localStorage.removeItem('balirent_token');
+      localStorage.removeItem('balirent_admin');
+      localStorage.removeItem('balirent_expiry');
+      localStorage.removeItem('balirent_admin_id');
+    }
+  }
+
+  const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 jam dalam ms
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) {
+      showAlert('Username dan password wajib diisi', 'error');
+      return;
+    }
+    const btn = document.querySelector('.btn-login');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem('balirent_token', json.token);
+        localStorage.setItem('balirent_admin', json.admin.username);
+        localStorage.setItem('balirent_admin_id', json.admin.id);
+        localStorage.setItem('balirent_expiry', Date.now() + SESSION_DURATION);
+        location.href = 'dashboard.html';
+      } else {
+        showAlert(json.message, 'error');
+      }
+    } catch(e) {
+      showAlert('Gagal terhubung ke server', 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = 'Masuk';
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('alertBox');
+    el.textContent = msg;
+    el.className = `alert alert-${type} show`;
+  }
+</script>
+</body>
+</html>
