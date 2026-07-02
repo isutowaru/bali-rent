@@ -16,11 +16,12 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
-    if (allowed.test(path.extname(file.originalname).toLowerCase())) {
+    const allowedExt = /jpeg|jpg|png|webp/;
+    const allowedMime = /image\/(jpeg|png|webp)/;
+    if (allowedExt.test(path.extname(file.originalname).toLowerCase()) && allowedMime.test(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Hanya file gambar yang diizinkan'));
+      cb(new Error('Hanya file gambar (jpeg, png, webp) yang diizinkan'));
     }
   },
   limits: { fileSize: 3 * 1024 * 1024 }, // max 3MB

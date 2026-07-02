@@ -16,11 +16,12 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
-    if (allowed.test(path.extname(file.originalname).toLowerCase())) {
+    const allowedExt = /jpeg|jpg|png|webp/;
+    const allowedMime = /image\/(jpeg|png|webp)/;
+    if (allowedExt.test(path.extname(file.originalname).toLowerCase()) && allowedMime.test(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Hanya file gambar yang diizinkan'));
+      cb(new Error('Hanya file gambar (jpeg, png, webp) yang diizinkan'));
     }
   },
   limits: { fileSize: 3 * 1024 * 1024 }, // max 3MB
@@ -60,14 +61,12 @@ router.post('/upload-gambar', auth, upload.single('gambar'), async (req, res) =>
   res.json({ success: true, url: `/uploads/${req.file.filename}` });
 });
 
-// GET semua artikel (publik) — hanya yang published, kecuali admin minta semua
+// GET semua artikel (publik) — hanya yang published
 router.get('/', async (req, res) => {
   try {
-    const { semua } = req.query;
-    let query = 'SELECT * FROM artikel';
-    if (!semua) query += " WHERE status = 'published'";
-    query += ' ORDER BY created_at DESC';
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(
+      "SELECT * FROM artikel WHERE status = 'published' ORDER BY created_at DESC"
+    );
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data artikel' });

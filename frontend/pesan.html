@@ -104,6 +104,36 @@
     }
     .modal .detail-box strong { color: var(--primary); }
 
+    /* Validasi field */
+    .form-control.is-invalid {
+      border-color: #dc2626;
+      background-color: #fff8f8;
+    }
+    .form-control.is-valid {
+      border-color: #16a34a;
+      background-color: #f8fff8;
+    }
+    .field-hint {
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
+    .field-hint.error { color: #dc2626; display: block; }
+    .field-hint.success { color: #16a34a; display: block; }
+    .field-hint.info { color: var(--text-muted); display: block; }
+
+    /* Counter NIK */
+    .nik-counter {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .nik-wrap { position: relative; }
+
     @media (max-width: 768px) {
       .pesan-layout { grid-template-columns: 1fr; }
       .summary-card { position: static; }
@@ -142,16 +172,22 @@
 
     <div class="form-group">
       <label>Nama Lengkap *</label>
-      <input type="text" id="nama" class="form-control" placeholder="Sesuai KTP" required />
+      <input type="text" id="nama" class="form-control" placeholder="Sesuai KTP" autocomplete="name" required />
+      <div class="field-hint" id="hint-nama"></div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>Nomor HP / WhatsApp *</label>
-        <input type="tel" id="noHp" class="form-control" placeholder="08xx-xxxx-xxxx" required />
+        <input type="tel" id="noHp" class="form-control" placeholder="08xx-xxxx-xxxx" autocomplete="tel" required />
+        <div class="field-hint" id="hint-hp"></div>
       </div>
       <div class="form-group">
-        <label>Nomor KTP *</label>
-        <input type="text" id="noKtp" class="form-control" placeholder="16 digit NIK" required />
+        <label>Nomor KTP (NIK) *</label>
+        <div class="nik-wrap">
+          <input type="text" id="noKtp" class="form-control" placeholder="16 digit NIK" maxlength="16" inputmode="numeric" required />
+          <span class="nik-counter" id="nikCounter">0/16</span>
+        </div>
+        <div class="field-hint" id="hint-ktp"></div>
       </div>
     </div>
 
@@ -165,11 +201,13 @@
     <div class="form-row">
       <div class="form-group">
         <label>Tanggal Mulai Sewa *</label>
-        <input type="date" id="tanggalMulai" class="form-control" onchange="hitungHarga()" required />
+        <input type="date" id="tanggalMulai" class="form-control" onchange="hitungHarga(); cekTanggal()" required />
+        <div class="field-hint" id="hint-mulai"></div>
       </div>
       <div class="form-group">
         <label>Tanggal Selesai Sewa *</label>
-        <input type="date" id="tanggalSelesai" class="form-control" onchange="hitungHarga()" required />
+        <input type="date" id="tanggalSelesai" class="form-control" onchange="hitungHarga(); cekTanggal()" required />
+        <div class="field-hint" id="hint-selesai"></div>
       </div>
     </div>
 
@@ -269,20 +307,125 @@
   let waNumber = '6281234567890';
   let pesanWA = '';
 
-  // Set tanggal minimal = hari ini
+  // =============================================
+  // HELPERS VALIDASI
+  // =============================================
+
+  function setFieldStatus(inputId, hintId, status, msg) {
+    const input = document.getElementById(inputId);
+    const hint = document.getElementById(hintId);
+    if (!input || !hint) return;
+    input.classList.remove('is-valid', 'is-invalid');
+    hint.className = 'field-hint';
+    hint.textContent = '';
+    if (status === 'error') {
+      input.classList.add('is-invalid');
+      hint.className = 'field-hint error';
+      hint.textContent = '✗ ' + msg;
+    } else if (status === 'success') {
+      input.classList.add('is-valid');
+      hint.className = 'field-hint success';
+      hint.textContent = '✓ ' + msg;
+    } else if (status === 'info') {
+      hint.className = 'field-hint info';
+      hint.textContent = msg;
+    }
+  }
+
+  function validasiNama() {
+    const val = document.getElementById('nama').value.trim();
+    if (!val) { setFieldStatus('nama', 'hint-nama', '', ''); return false; }
+    if (val.length < 3) { setFieldStatus('nama', 'hint-nama', 'error', 'Nama minimal 3 karakter'); return false; }
+    if (!/^[a-zA-Z\s'.,-]+$/.test(val)) { setFieldStatus('nama', 'hint-nama', 'error', 'Nama hanya boleh berisi huruf'); return false; }
+    setFieldStatus('nama', 'hint-nama', 'success', 'Nama valid');
+    return true;
+  }
+
+  function validasiHP() {
+    const raw = document.getElementById('noHp').value.trim();
+    const val = raw.replace(/[\s\-().]/g, '');
+    if (!val) { setFieldStatus('noHp', 'hint-hp', '', ''); return false; }
+    // Format: 08xx, +628xx, 628xx — panjang efektif 10-13 digit
+    if (!/^(\+62|62|0)8[1-9][0-9]{7,10}$/.test(val)) {
+      setFieldStatus('noHp', 'hint-hp', 'error', 'Format tidak valid. Contoh: 0812-3456-7890 atau +6281234567890');
+      return false;
+    }
+    setFieldStatus('noHp', 'hint-hp', 'success', 'Nomor HP valid');
+    return true;
+  }
+
+  function validasiNIK() {
+    const val = document.getElementById('noKtp').value.replace(/\s/g, '');
+    const counter = document.getElementById('nikCounter');
+    if (counter) counter.textContent = `${val.length}/16`;
+    if (!val) { setFieldStatus('noKtp', 'hint-ktp', '', ''); return false; }
+    if (!/^\d+$/.test(val)) { setFieldStatus('noKtp', 'hint-ktp', 'error', 'NIK hanya boleh angka'); return false; }
+    if (val.length < 16) { setFieldStatus('noKtp', 'hint-ktp', 'info', `Masukkan ${16 - val.length} digit lagi`); return false; }
+    if (val.length === 16) { setFieldStatus('noKtp', 'hint-ktp', 'success', 'NIK lengkap 16 digit'); return true; }
+    return false;
+  }
+
+  function cekTanggal() {
+    const mulai = document.getElementById('tanggalMulai').value;
+    const selesai = document.getElementById('tanggalSelesai').value;
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Reset hint tanggal selesai dulu
+    setFieldStatus('tanggalSelesai', 'hint-selesai', '', '');
+
+    if (mulai) {
+      const tMulai = new Date(mulai);
+      if (tMulai < today) {
+        setFieldStatus('tanggalMulai', 'hint-mulai', 'error', 'Tanggal mulai tidak boleh di masa lalu');
+        return false;
+      }
+      // Set min tanggal selesai = tanggal mulai + 1
+      const minSelesai = new Date(tMulai);
+      minSelesai.setDate(minSelesai.getDate() + 1);
+      document.getElementById('tanggalSelesai').min = minSelesai.toISOString().split('T')[0];
+      setFieldStatus('tanggalMulai', 'hint-mulai', 'success', 'Tanggal mulai valid');
+    }
+
+    if (mulai && selesai) {
+      const tMulai = new Date(mulai), tSelesai = new Date(selesai);
+      if (tSelesai <= tMulai) {
+        setFieldStatus('tanggalSelesai', 'hint-selesai', 'error', 'Tanggal selesai harus setelah tanggal mulai');
+        return false;
+      }
+      const lama = Math.ceil((tSelesai - tMulai) / (1000*60*60*24));
+      if (lama > 90) {
+        setFieldStatus('tanggalSelesai', 'hint-selesai', 'error', 'Maksimal sewa 90 hari');
+        return false;
+      }
+      setFieldStatus('tanggalSelesai', 'hint-selesai', 'success', `${lama} hari sewa`);
+    }
+    return true;
+  }
+
+  // =============================================
+  // INISIALISASI
+  // =============================================
+
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('tanggalMulai').min = today;
   document.getElementById('tanggalSelesai').min = today;
 
+  // Event listeners real-time
+  document.getElementById('nama').addEventListener('blur', validasiNama);
+  document.getElementById('noHp').addEventListener('blur', validasiHP);
+  document.getElementById('noKtp').addEventListener('input', validasiNIK);
+  // Hanya izinkan angka di field NIK
+  document.getElementById('noKtp').addEventListener('keypress', (e) => {
+    if (!/[0-9]/.test(e.key)) e.preventDefault();
+  });
+
   async function init() {
-    // Load WA number
     try {
       const res = await fetch('/api/config');
       const json = await res.json();
       waNumber = json.wa_number;
     } catch(e) {}
 
-    // Load kendaraan
     try {
       const res = await fetch('/api/kendaraan');
       const json = await res.json();
@@ -300,7 +443,6 @@
           sel.appendChild(opt);
         });
 
-        // Auto-select jika ada ?id= di URL
         const params = new URLSearchParams(location.search);
         const idParam = params.get('id');
         if (idParam) {
@@ -362,41 +504,64 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  // =============================================
+  // SUBMIT — validasi lengkap sebelum kirim
+  // =============================================
+
   async function submitPemesanan() {
-    const nama = document.getElementById('nama').value.trim();
-    const noHp = document.getElementById('noHp').value.trim();
-    const noKtp = document.getElementById('noKtp').value.trim();
+    // Jalankan semua validasi, kumpulkan error
+    const namaOk = validasiNama();
+    const hpOk = validasiHP();
+    const nikOk = validasiNIK();
+    const tanggalOk = cekTanggal();
+
     const kendaraanId = document.getElementById('kendaraanSelect').value;
     const tanggalMulai = document.getElementById('tanggalMulai').value;
     const tanggalSelesai = document.getElementById('tanggalSelesai').value;
+
+    if (!kendaraanId) { showAlert('⚠️ Pilih kendaraan terlebih dahulu.', 'error'); return; }
+    if (!tanggalMulai || !tanggalSelesai) { showAlert('⚠️ Isi tanggal mulai dan selesai.', 'error'); return; }
+    if (!namaOk || !hpOk || !nikOk || !tanggalOk) {
+      showAlert('⚠️ Periksa kembali isian yang ditandai merah di atas.', 'error');
+      // Scroll ke field pertama yang error
+      const firstError = document.querySelector('.form-control.is-invalid');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const nama = document.getElementById('nama').value.trim();
+    const noHp = document.getElementById('noHp').value.trim();
+    const noKtp = document.getElementById('noKtp').value.replace(/\s/g, '');
     const alamatAntar = document.getElementById('alamatAntar').value.trim();
     const catatan = document.getElementById('catatan').value.trim();
 
-    if (!nama || !noHp || !noKtp || !kendaraanId || !tanggalMulai || !tanggalSelesai) {
-      showAlert('⚠️ Semua field bertanda * wajib diisi!', 'error');
-      return;
-    }
-    if (new Date(tanggalSelesai) <= new Date(tanggalMulai)) {
-      showAlert('⚠️ Tanggal selesai harus setelah tanggal mulai!', 'error');
-      return;
-    }
-
     const btn = document.querySelector('.btn-submit');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Memproses...';
+    btn.innerHTML = '<span class="spinner"></span> Memeriksa ketersediaan...';
 
     try {
       const res = await fetch('/api/pemesanan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama_pemesan: nama, no_hp: noHp, no_ktp: noKtp, kendaraan_id: kendaraanId, tanggal_mulai: tanggalMulai, tanggal_selesai: tanggalSelesai, alamat_antar: alamatAntar, catatan }),
+        body: JSON.stringify({
+          nama_pemesan: nama,
+          no_hp: noHp,
+          no_ktp: noKtp,
+          kendaraan_id: kendaraanId,
+          tanggal_mulai: tanggalMulai,
+          tanggal_selesai: tanggalSelesai,
+          alamat_antar: alamatAntar,
+          catatan,
+        }),
       });
       const json = await res.json();
 
       if (json.success) {
         const d = json.data;
-        // Siapkan pesan WhatsApp
-        pesanWA = `*PEMESANAN BALI RENT*\n\n` +
+        // Sertakan nomor pemesanan di pesan WA
+        pesanWA =
+          `*PEMESANAN BALI RENT*\n` +
+          `*No. Order*   : #${d.id}\n\n` +
           `*Nama*        : ${nama}\n` +
           `*No HP*       : ${noHp}\n` +
           `*No KTP*      : ${noKtp}\n` +
@@ -410,17 +575,24 @@
           `\nMohon konfirmasi pemesanan saya. Terima kasih!`;
 
         document.getElementById('modalDetail').innerHTML =
+          `<strong>No. Order:</strong> #${d.id}<br>` +
           `<strong>Kendaraan:</strong> ${d.nama_kendaraan}<br>` +
           `<strong>Tanggal:</strong> ${tanggalMulai} s/d ${tanggalSelesai}<br>` +
           `<strong>Lama Sewa:</strong> ${d.lama_sewa} hari<br>` +
           `<strong>Total Harga:</strong> Rp ${Number(d.total_harga).toLocaleString('id-ID')}`;
 
         document.getElementById('modalOverlay').classList.add('show');
+
+      } else if (json.conflict) {
+        // Tanggal bentrok — highlight field tanggal
+        setFieldStatus('tanggalMulai', 'hint-mulai', 'error', 'Tanggal bentrok dengan pemesanan lain');
+        setFieldStatus('tanggalSelesai', 'hint-selesai', 'error', 'Coba pilih tanggal lain');
+        showAlert('❌ ' + json.message, 'error');
       } else {
         showAlert('❌ ' + json.message, 'error');
       }
     } catch(e) {
-      showAlert('❌ Gagal terhubung ke server. Pastikan server berjalan.', 'error');
+      showAlert('❌ Gagal terhubung ke server. Pastikan koneksi internet kamu aktif.', 'error');
     }
 
     btn.disabled = false;

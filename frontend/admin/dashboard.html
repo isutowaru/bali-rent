@@ -116,6 +116,7 @@
       .stats-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -181,6 +182,20 @@
         <div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-sack-dollar" style="color:var(--accent)"></i></div><div class="stat-value" id="sPendapatan" style="font-size:18px">-</div><div class="stat-label">Total Pendapatan</div></div>
       </div>
 
+      <!-- Grafik Pendapatan Bulanan -->
+      <div class="table-card" style="margin-top:16px;padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <h3 style="margin:0"><i class="fa-solid fa-chart-column"></i> Pendapatan Bulanan</h3>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="filterTahunChart" class="form-control" style="width:auto;padding:7px 12px;font-size:13px" onchange="loadGrafikPendapatan()"></select>
+            <span id="totalTahunLabel" style="font-size:12px;color:var(--text-muted);padding:5px 10px;background:#f0f7f3;border-radius:20px"></span>
+          </div>
+        </div>
+        <div style="position:relative;height:300px">
+          <canvas id="chartPendapatan"></canvas>
+        </div>
+      </div>
+
       <!-- Tab -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tabPemesanan" onclick="showTab('pemesanan')"><i class="fa-solid fa-clipboard-list"></i> Pemesanan</button>
@@ -195,6 +210,18 @@
           <div class="table-header" style="flex-wrap:wrap;gap:10px">
             <h3>Daftar Pemesanan</h3>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto">
+              <!-- Search box -->
+              <div style="position:relative">
+                <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none"></i>
+                <input
+                  type="text"
+                  id="searchPemesanan"
+                  class="form-control"
+                  placeholder="Cari nama / HP / no. order..."
+                  style="padding:7px 12px 7px 32px;font-size:13px;width:210px"
+                  oninput="filterPemesanan()"
+                />
+              </div>
               <select id="filterPemesananBulan" class="form-control" style="width:auto;padding:7px 12px;font-size:13px" onchange="loadPemesanan()">
                 <option value="">Semua Bulan</option>
                 <option value="1">Januari</option>
@@ -220,7 +247,15 @@
                 <option value="selesai">Selesai</option>
                 <option value="dibatalkan">Dibatalkan</option>
               </select>
+              <button onclick="exportPemesananCSV()" class="btn" style="padding:7px 14px;font-size:13px;background:#16a34a;color:white;display:flex;align-items:center;gap:6px;white-space:nowrap" title="Export data yang sedang tampil ke CSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
             </div>
+          </div>
+          <!-- Info hasil pencarian -->
+          <div id="searchInfo" style="display:none;padding:8px 20px;background:#f0f7f3;border-bottom:1px solid var(--border);font-size:13px;color:var(--primary);display:flex;align-items:center;justify-content:space-between">
+            <span id="searchInfoText"></span>
+            <button onclick="clearSearch()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px;font-weight:600;text-decoration:underline">Hapus pencarian</button>
           </div>
           <div style="overflow-x:auto">
             <table>
@@ -535,6 +570,102 @@
     } catch(e) {}
   }
 
+  // =============================================
+  // GRAFIK PENDAPATAN BULANAN (Chart.js)
+  // =============================================
+
+  let chartPendapatanInstance = null;
+
+  function initFilterTahunChart() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const sel = document.getElementById('filterTahunChart');
+    for (let y = currentYear; y >= currentYear - 4; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      sel.appendChild(opt);
+    }
+  }
+
+  function formatRupiahSingkat(angka) {
+    if (angka >= 1000000000) return 'Rp ' + (angka / 1000000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (angka >= 1000000) return 'Rp ' + (angka / 1000000).toFixed(1).replace(/\.0$/, '') + 'jt';
+    if (angka >= 1000) return 'Rp ' + (angka / 1000).toFixed(0) + 'rb';
+    return 'Rp ' + angka;
+  }
+
+  async function loadGrafikPendapatan() {
+    const tahun = document.getElementById('filterTahunChart').value;
+    const canvas = document.getElementById('chartPendapatan');
+
+    try {
+      const res = await fetch(`/api/pemesanan/stats/pendapatan-bulanan?tahun=${tahun}`, { headers: authHeader() });
+      const json = await res.json();
+
+      if (!json.success) return;
+
+      const labels = json.data.map(b => b.nama_bulan);
+      const pendapatan = json.data.map(b => b.pendapatan);
+      const jumlahPemesanan = json.data.map(b => b.jumlah_pemesanan);
+
+      document.getElementById('totalTahunLabel').textContent =
+        `Total ${tahun}: Rp ${Number(json.total_tahun).toLocaleString('id-ID')}`;
+
+      // Hapus chart lama sebelum render ulang (hindari duplikat/memory leak)
+      if (chartPendapatanInstance) {
+        chartPendapatanInstance.destroy();
+      }
+
+      chartPendapatanInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Pendapatan',
+            data: pendapatan,
+            backgroundColor: 'rgba(22, 101, 52, 0.75)',
+            hoverBackgroundColor: 'rgba(22, 101, 52, 1)',
+            borderRadius: 6,
+            maxBarThickness: 48,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const idx = ctx.dataIndex;
+                  return [
+                    `Pendapatan: Rp ${Number(ctx.raw).toLocaleString('id-ID')}`,
+                    `Jumlah pemesanan: ${jumlahPemesanan[idx]}`,
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (val) => formatRupiahSingkat(val),
+              },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+            },
+            x: {
+              grid: { display: false },
+            },
+          },
+        },
+      });
+    } catch(e) {
+      console.error('Gagal memuat grafik pendapatan:', e);
+    }
+  }
+
   // ===== INIT FILTER TAHUN PEMESANAN =====
   (function initFilterTahunPemesanan() {
     const now = new Date();
@@ -548,27 +679,23 @@
     }
   })();
 
-  async function loadPemesanan() {
-    const status = document.getElementById('filterStatus').value;
-    const bulan = document.getElementById('filterPemesananBulan').value;
-    const tahun = document.getElementById('filterPemesananTahun').value;
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    if (bulan) params.set('bulan', bulan);
-    if (tahun) params.set('tahun', tahun);
-    const qs = params.toString();
-    try {
-      const res = await fetch(`/api/pemesanan${qs ? '?'+qs : ''}`, { headers: authHeader() });
-      const json = await res.json();
-      const tbody = document.getElementById('tabelPemesanan');
-      if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Belum ada pemesanan.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = json.data.map(p => `
+  // Cache data pemesanan agar search bisa filter tanpa re-fetch
+  let allPemesanan = [];
+
+  function renderPemesanan(data) {
+    const tbody = document.getElementById('tabelPemesanan');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Tidak ada pemesanan yang cocok.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(p => {
+      const keyword = (document.getElementById('searchPemesanan').value || '').toLowerCase();
+      const hlNama = keyword ? p.nama_pemesan.replace(new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark style="background:#fef9c3;border-radius:2px">$1</mark>') : p.nama_pemesan;
+      const hlHp   = keyword ? p.no_hp.replace(new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark style="background:#fef9c3;border-radius:2px">$1</mark>') : p.no_hp;
+      return `
         <tr>
           <td>#${p.id}</td>
-          <td><strong>${p.nama_pemesan}</strong><br><span style="font-size:12px;color:var(--text-muted)">${p.no_hp}</span></td>
+          <td><strong>${hlNama}</strong><br><span style="font-size:12px;color:var(--text-muted)">${hlHp}</span></td>
           <td>${p.nama_kendaraan}</td>
           <td>${p.tanggal_mulai}</td>
           <td>${p.lama_sewa} hari</td>
@@ -583,9 +710,153 @@
             </select>
           </td>
         </tr>
-      `).join('');
+      `;
+    }).join('');
+  }
+
+  function filterPemesanan() {
+    const keyword = document.getElementById('searchPemesanan').value.trim().toLowerCase();
+    const infoBar = document.getElementById('searchInfo');
+    const infoText = document.getElementById('searchInfoText');
+
+    if (!keyword) {
+      infoBar.style.display = 'none';
+      renderPemesanan(allPemesanan);
+      return;
+    }
+
+    const hasil = allPemesanan.filter(p =>
+      p.nama_pemesan.toLowerCase().includes(keyword) ||
+      p.no_hp.replace(/[\s\-]/g, '').includes(keyword.replace(/[\s\-]/g, '')) ||
+      String(p.id).includes(keyword.replace(/^#/, ''))
+    );
+
+    infoBar.style.display = 'flex';
+    infoText.textContent = hasil.length
+      ? `Ditemukan ${hasil.length} pemesanan untuk "${keyword}"`
+      : `Tidak ada hasil untuk "${keyword}"`;
+
+    renderPemesanan(hasil);
+  }
+
+  function clearSearch() {
+    document.getElementById('searchPemesanan').value = '';
+    filterPemesanan();
+  }
+
+  // =============================================
+  // EXPORT CSV
+  // =============================================
+
+  function exportPemesananCSV() {
+    // Ambil data yang SEDANG TAMPIL (sudah kena filter status/bulan/tahun/search)
+    const keyword = document.getElementById('searchPemesanan').value.trim().toLowerCase();
+    let dataExport = allPemesanan;
+    if (keyword) {
+      dataExport = allPemesanan.filter(p =>
+        p.nama_pemesan.toLowerCase().includes(keyword) ||
+        p.no_hp.replace(/[\s\-]/g, '').includes(keyword.replace(/[\s\-]/g, '')) ||
+        String(p.id).includes(keyword.replace(/^#/, ''))
+      );
+    }
+
+    if (!dataExport.length) {
+      alert('Tidak ada data untuk diexport. Coba ubah filter terlebih dahulu.');
+      return;
+    }
+
+    // Header kolom CSV
+    const header = [
+      'No. Order', 'Nama Pemesan', 'No HP', 'No KTP', 'Kendaraan',
+      'Tanggal Mulai', 'Tanggal Selesai', 'Lama Sewa (hari)',
+      'Total Harga', 'Alamat Antar', 'Catatan', 'Status', 'Tanggal Dibuat',
+    ];
+
+    // Escape nilai agar aman di CSV (koma, kutip, baris baru)
+    function escapeCSV(val) {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (/[",\n]/.test(str)) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    const rows = dataExport.map(p => [
+      `#${p.id}`,
+      p.nama_pemesan,
+      p.no_hp,
+      p.no_ktp,
+      p.nama_kendaraan,
+      p.tanggal_mulai,
+      p.tanggal_selesai,
+      p.lama_sewa,
+      p.total_harga,
+      p.alamat_antar || '-',
+      p.catatan || '-',
+      p.status,
+      p.created_at ? new Date(p.created_at).toLocaleString('id-ID') : '-',
+    ].map(escapeCSV).join(','));
+
+    // Tambahkan BOM (\uFEFF) agar Excel membaca karakter UTF-8 (Rp, dll) dengan benar
+    const csvContent = '\uFEFF' + [header.map(escapeCSV).join(','), ...rows].join('\n');
+
+    // Buat nama file berdasarkan filter aktif & tanggal export
+    const bulanSel = document.getElementById('filterPemesananBulan');
+    const tahunSel = document.getElementById('filterPemesananTahun');
+    const statusSel = document.getElementById('filterStatus');
+    const bulanNama = bulanSel.value ? bulanSel.options[bulanSel.selectedIndex].text : '';
+    const tahunNama = tahunSel.value || '';
+    const statusNama = statusSel.value || '';
+    const bagianNama = ['pemesanan', bulanNama, tahunNama, statusNama].filter(Boolean).join('-').toLowerCase().replace(/\s+/g, '-');
+    const tanggalExport = new Date().toISOString().split('T')[0];
+    const namaFile = `${bagianNama}-${tanggalExport}.csv`;
+
+    // Trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = namaFile;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function loadPemesanan() {
+    // Reset search saat filter berubah
+    document.getElementById('searchPemesanan').value = '';
+    document.getElementById('searchInfo').style.display = 'none';
+
+    const status = document.getElementById('filterStatus').value;
+    const bulan = document.getElementById('filterPemesananBulan').value;
+    const tahun = document.getElementById('filterPemesananTahun').value;
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (bulan) params.set('bulan', bulan);
+    if (tahun) params.set('tahun', tahun);
+    const qs = params.toString();
+
+    document.getElementById('tabelPemesanan').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Memuat...</td></tr>';
+
+    try {
+      const res = await fetch(`/api/pemesanan${qs ? '?'+qs : ''}`, { headers: authHeader() });
+      const json = await res.json();
+
+      if (!json.success || !json.data.length) {
+        allPemesanan = [];
+        document.getElementById('tabelPemesanan').innerHTML =
+          '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Belum ada pemesanan.</td></tr>';
+        return;
+      }
+
+      allPemesanan = json.data;
+      renderPemesanan(allPemesanan);
     } catch(e) {
-      document.getElementById('tabelPemesanan').innerHTML = '<tr><td colspan="8" style="text-align:center;color:red;padding:32px">Gagal memuat data.</td></tr>';
+      document.getElementById('tabelPemesanan').innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:red;padding:32px">Gagal memuat data.</td></tr>';
     }
   }
 
@@ -1079,6 +1350,8 @@
   // Init
   loadStats();
   loadPemesanan();
+  initFilterTahunChart();
+  loadGrafikPendapatan();
 </script>
 </body>
 </html>
