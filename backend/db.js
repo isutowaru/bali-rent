@@ -64,15 +64,25 @@ async function initDB() {
       )
     `);
 
-    // Tabel admin
+    // Tabel admin — tambah kolom role & akses jika belum ada
     await conn.query(`
       CREATE TABLE IF NOT EXISTS admin (
         id INT PRIMARY KEY AUTO_INCREMENT,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
+        role ENUM('superadmin','staff') NOT NULL DEFAULT 'superadmin',
+        akses JSON DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migrasi: tambah kolom role & akses jika tabel admin sudah ada tapi belum punya kolom ini
+    try {
+      await conn.query(`ALTER TABLE admin ADD COLUMN role ENUM('superadmin','staff') NOT NULL DEFAULT 'superadmin'`);
+    } catch(e) { /* kolom sudah ada */ }
+    try {
+      await conn.query(`ALTER TABLE admin ADD COLUMN akses JSON DEFAULT NULL`);
+    } catch(e) { /* kolom sudah ada */ }
 
     // Insert data kendaraan contoh jika tabel kosong
     const [rows] = await conn.query('SELECT COUNT(*) as count FROM kendaraan');

@@ -6,6 +6,14 @@ const { pool } = require('../db');
 const auth = require('../middleware/auth');
 require('dotenv').config();
 
+// Middleware: hanya superadmin yang boleh akses
+function superadminOnly(req, res, next) {
+  if (req.admin.role !== 'superadmin') {
+    return res.status(403).json({ success: false, message: 'Fitur ini hanya bisa diakses oleh superadmin' });
+  }
+  next();
+}
+
 // POST login admin
 router.post('/login', async (req, res) => {
   try {
@@ -25,8 +33,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Username atau password salah' });
     }
 
+    // Parse akses (JSON string dari DB)
+    const akses = admin.akses ? (typeof admin.akses === 'string' ? JSON.parse(admin.akses) : admin.akses) : null;
+
     const token = jwt.sign(
-      { id: admin.id, username: admin.username },
+      { id: admin.id, username: admin.username, role: admin.role, akses },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -35,19 +46,19 @@ router.post('/login', async (req, res) => {
       success: true,
       message: 'Login berhasil',
       token,
-      admin: { id: admin.id, username: admin.username },
+      admin: { id: admin.id, username: admin.username, role: admin.role, akses },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal login' });
   }
 });
 
-// GET verifikasi token (untuk cek apakah masih login)
+// GET verifikasi token
 router.get('/verify', auth, (req, res) => {
   res.json({ success: true, admin: req.admin });
 });
 
-// POST ganti password admin (admin only)
+// POST ganti password admin sendiri
 router.post('/ganti-password', auth, async (req, res) => {
   try {
     const { password_lama, password_baru } = req.body;
@@ -57,13 +68,11 @@ router.post('/ganti-password', auth, async (req, res) => {
     if (password_baru.length < 6) {
       return res.status(400).json({ success: false, message: 'Password baru minimal 6 karakter' });
     }
-
     const [rows] = await pool.query('SELECT * FROM admin WHERE id = ?', [req.admin.id]);
     const match = await bcrypt.compare(password_lama, rows[0].password);
     if (!match) {
       return res.status(401).json({ success: false, message: 'Password lama tidak sesuai' });
     }
-
     const hashed = await bcrypt.hash(password_baru, 10);
     await pool.query('UPDATE admin SET password = ? WHERE id = ?', [hashed, req.admin.id]);
     res.json({ success: true, message: 'Password berhasil diubah' });
@@ -74,47 +83,61 @@ router.post('/ganti-password', auth, async (req, res) => {
 
 // ===== MANAJEMEN USER ADMIN =====
 
-// GET semua user admin
-router.get('/users', auth, async (req, res) => {
+// GET semua user admin (superadmin only)
+router.get('/users', auth, superadminOnly, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, username, created_at FROM admin ORDER BY id ASC');
+    const [rows] = await pool.query('SELECT id, username, role, akses, created_at FROM admin ORDER BY id ASC');
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data user' });
   }
 });
 
-// POST tambah user admin baru
-router.post('/users', auth, async (req, res) => {
+// POST tambah user admin baru (superadmin only)
+router.post('/users', auth, superadminOnly, async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, role, akses } = req.body;
     if (!username || !password) {
       return res.status(400).json({ success: false, message: 'Username dan password wajib diisi' });
     }
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password minimal 6 karakter' });
     }
+    const validRole = role === 'staff' ? 'staff' : 'superadmin';
+
     const [exist] = await pool.query('SELECT id FROM admin WHERE username = ?', [username]);
     if (exist.length > 0) {
       return res.status(409).json({ success: false, message: 'Username sudah digunakan' });
     }
+
     const hashed = await bcrypt.hash(password, 10);
-    const [result] = await pool.query('INSERT INTO admin (username, password) VALUES (?, ?)', [username, hashed]);
+    // Akses hanya berlaku untuk role staff; superadmin otomatis punya semua akses
+    const aksesValue = validRole === 'staff' && akses ? JSON.stringify(akses) : null;
+
+    const [result] = await pool.query(
+      'INSERT INTO admin (username, password, role, akses) VALUES (?, ?, ?, ?)',
+      [username, hashed, validRole, aksesValue]
+    );
     res.status(201).json({ success: true, message: 'User berhasil ditambahkan', id: result.insertId });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal menambahkan user' });
   }
 });
 
-// PUT edit user admin (username dan/atau password)
-router.put('/users/:id', auth, async (req, res) => {
+// PUT edit user admin (superadmin only)
+router.put('/users/:id', auth, superadminOnly, async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, role, akses } = req.body;
     const targetId = parseInt(req.params.id);
 
     const [existing] = await pool.query('SELECT * FROM admin WHERE id = ?', [targetId]);
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+    }
+
+    // Tidak boleh downgrade diri sendiri
+    if (targetId === req.admin.id && role === 'staff') {
+      return res.status(400).json({ success: false, message: 'Tidak bisa mengubah role akun yang sedang aktif' });
     }
 
     if (username && username !== existing[0].username) {
@@ -125,6 +148,9 @@ router.put('/users/:id', auth, async (req, res) => {
     }
 
     const newUsername = username || existing[0].username;
+    const newRole = role === 'staff' ? 'staff' : 'superadmin';
+    const aksesValue = newRole === 'staff' && akses ? JSON.stringify(akses) : null;
+
     let newPassword = existing[0].password;
     if (password) {
       if (password.length < 6) {
@@ -133,18 +159,20 @@ router.put('/users/:id', auth, async (req, res) => {
       newPassword = await bcrypt.hash(password, 10);
     }
 
-    await pool.query('UPDATE admin SET username = ?, password = ? WHERE id = ?', [newUsername, newPassword, targetId]);
+    await pool.query(
+      'UPDATE admin SET username = ?, password = ?, role = ?, akses = ? WHERE id = ?',
+      [newUsername, newPassword, newRole, aksesValue, targetId]
+    );
     res.json({ success: true, message: 'User berhasil diupdate' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mengupdate user' });
   }
 });
 
-// DELETE user admin
-router.delete('/users/:id', auth, async (req, res) => {
+// DELETE user admin (superadmin only)
+router.delete('/users/:id', auth, superadminOnly, async (req, res) => {
   try {
     const targetId = parseInt(req.params.id);
-    // Cegah hapus diri sendiri
     if (targetId === req.admin.id) {
       return res.status(400).json({ success: false, message: 'Tidak bisa menghapus akun yang sedang digunakan' });
     }
@@ -152,10 +180,10 @@ router.delete('/users/:id', auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
     }
-    // Cegah hapus jika hanya ada 1 user
-    const [count] = await pool.query('SELECT COUNT(*) as total FROM admin');
-    if (count[0].total <= 1) {
-      return res.status(400).json({ success: false, message: 'Tidak bisa menghapus satu-satunya user admin' });
+    const [count] = await pool.query("SELECT COUNT(*) as total FROM admin WHERE role = 'superadmin'");
+    const targetRow = await pool.query('SELECT role FROM admin WHERE id = ?', [targetId]);
+    if (targetRow[0][0].role === 'superadmin' && count[0].total <= 1) {
+      return res.status(400).json({ success: false, message: 'Tidak bisa menghapus satu-satunya superadmin' });
     }
     await pool.query('DELETE FROM admin WHERE id = ?', [targetId]);
     res.json({ success: true, message: 'User berhasil dihapus' });

@@ -71,6 +71,7 @@
         localStorage.setItem('balirent_token', json.token);
         localStorage.setItem('balirent_admin', json.admin.username);
         localStorage.setItem('balirent_admin_id', json.admin.id);
+        localStorage.setItem('balirent_admin_info', JSON.stringify({ role: json.admin.role, akses: json.admin.akses }));
         localStorage.setItem('balirent_expiry', Date.now() + SESSION_DURATION);
         location.href = 'dashboard.html';
       } else {

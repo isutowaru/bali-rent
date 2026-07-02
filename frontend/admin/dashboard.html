@@ -310,12 +310,12 @@
         <div class="table-card">
           <div class="table-header">
             <h3>Daftar User Admin</h3>
-            <button class="btn btn-primary btn-sm" onclick="bukaModalTambahUser()">+ Tambah User</button>
+            <button class="btn btn-primary btn-sm" id="btnTambahUser" onclick="bukaModalTambahUser()">+ Tambah User</button>
           </div>
           <div style="overflow-x:auto">
             <table>
-              <thead><tr><th>ID</th><th>Username</th><th>Dibuat</th><th>Aksi</th></tr></thead>
-              <tbody id="tabelUser"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px">Memuat...</td></tr></tbody>
+              <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Akses Fitur</th><th>Dibuat</th><th>Aksi</th></tr></thead>
+              <tbody id="tabelUser"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Memuat...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -327,19 +327,64 @@
 
 <!-- Modal User Admin -->
 <div class="modal-overlay" id="modalUser">
-  <div class="modal">
+  <div class="modal" style="max-width:500px">
     <h3 id="modalUserTitle">Tambah User Admin</h3>
     <input type="hidden" id="uId" />
+
     <div class="form-group">
       <label>Username *</label>
-      <input type="text" id="uUsername" class="form-control" placeholder="contoh: admin2" />
+      <input type="text" id="uUsername" class="form-control" placeholder="contoh: staff_bali" />
     </div>
     <div class="form-group">
       <label id="uPasswordLabel">Password *</label>
       <input type="password" id="uPassword" class="form-control" placeholder="Minimal 6 karakter" />
       <div id="uPasswordHint" style="font-size:12px;color:var(--text-muted);margin-top:4px;display:none">Kosongkan jika tidak ingin mengubah password</div>
     </div>
-    <div id="alertModalUser" class="alert"></div>
+
+    <div class="form-group">
+      <label>Role *</label>
+      <select id="uRole" class="form-control" onchange="toggleAksesSection()">
+        <option value="superadmin">Superadmin — akses penuh ke semua fitur</option>
+        <option value="staff">Staff — akses terbatas sesuai pilihan</option>
+      </select>
+    </div>
+
+    <!-- Akses checkboxes, hanya tampil jika role = staff -->
+    <div id="aksesSection" style="display:none">
+      <label style="font-size:13px;font-weight:600;margin-bottom:8px;display:block">Akses Fitur *</label>
+      <div style="background:#f8fafb;border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="aksesKendaraan" style="margin-top:2px;width:16px;height:16px;accent-color:var(--primary)">
+          <div>
+            <div style="font-size:13px;font-weight:600">🚗 Kelola Kendaraan</div>
+            <div style="font-size:12px;color:var(--text-muted)">Tambah, edit, hapus kendaraan</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="aksesArtikel" style="margin-top:2px;width:16px;height:16px;accent-color:var(--primary)">
+          <div>
+            <div style="font-size:13px;font-weight:600">📰 Kelola Artikel</div>
+            <div style="font-size:12px;color:var(--text-muted)">Tulis, edit, hapus artikel blog</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="aksesPemesanan" style="margin-top:2px;width:16px;height:16px;accent-color:var(--primary)">
+          <div>
+            <div style="font-size:13px;font-weight:600">📋 Lihat & Kelola Pemesanan</div>
+            <div style="font-size:12px;color:var(--text-muted)">Lihat daftar pesanan, ubah status, export CSV</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="aksesStats" style="margin-top:2px;width:16px;height:16px;accent-color:var(--primary)">
+          <div>
+            <div style="font-size:13px;font-weight:600">📊 Lihat Statistik & Grafik</div>
+            <div style="font-size:12px;color:var(--text-muted)">Kartu ringkasan dan grafik pendapatan bulanan</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div id="alertModalUser" class="alert" style="margin-top:12px"></div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="simpanUser()">Simpan</button>
       <button class="btn btn-outline" onclick="tutupModalUser()">Batal</button>
@@ -697,7 +742,7 @@
           <td>#${p.id}</td>
           <td><strong>${hlNama}</strong><br><span style="font-size:12px;color:var(--text-muted)">${hlHp}</span></td>
           <td>${p.nama_kendaraan}</td>
-          <td>${p.tanggal_mulai}</td>
+          <td>${p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'}</td>
           <td>${p.lama_sewa} hari</td>
           <td>Rp ${Number(p.total_harga).toLocaleString('id-ID')}</td>
           <td><span class="badge badge-${p.status}">${p.status}</span></td>
@@ -1255,6 +1300,63 @@
   }
 
   // ===== MANAJEMEN USER ADMIN =====
+  // =============================================
+  // ROLE & AKSES — baca dari localStorage
+  // =============================================
+
+  function getAdminInfo() {
+    try {
+      return JSON.parse(localStorage.getItem('balirent_admin_info') || '{}');
+    } catch(e) { return {}; }
+  }
+
+  function hasAkses(fitur) {
+    const info = getAdminInfo();
+    if (info.role === 'superadmin') return true;
+    const akses = info.akses;
+    if (!akses) return false;
+    return !!akses[fitur];
+  }
+
+  // Sesuaikan tab & elemen yang tampil berdasarkan role/akses
+  function applyAksesUI() {
+    const info = getAdminInfo();
+    const isSuperadmin = info.role === 'superadmin';
+
+    // Tab visibility
+    if (!hasAkses('kendaraan') && !isSuperadmin) document.getElementById('tabKendaraan').style.display = 'none';
+    if (!hasAkses('artikel') && !isSuperadmin) document.getElementById('tabArtikel').style.display = 'none';
+    if (!hasAkses('pemesanan') && !isSuperadmin) document.getElementById('tabPemesanan').style.display = 'none';
+    // Tab user hanya superadmin
+    if (!isSuperadmin) document.getElementById('tabUser').style.display = 'none';
+
+    // Tombol tambah user hanya superadmin
+    const btnTambah = document.getElementById('btnTambahUser');
+    if (btnTambah && !isSuperadmin) btnTambah.style.display = 'none';
+
+    // Statistik & grafik
+    if (!hasAkses('stats') && !isSuperadmin) {
+      const statsGrid = document.querySelector('.stats-grid');
+      const grafikCard = document.getElementById('chartPendapatan')?.closest('.table-card');
+      if (statsGrid) statsGrid.style.display = 'none';
+      if (grafikCard) grafikCard.style.display = 'none';
+    }
+  }
+
+  // =============================================
+  // USER MANAGEMENT
+  // =============================================
+
+  const LABEL_AKSES = { kendaraan: '🚗 Kendaraan', artikel: '📰 Artikel', pemesanan: '📋 Pemesanan', stats: '📊 Statistik' };
+
+  function badgeAkses(akses) {
+    if (!akses) return '<span style="font-size:11px;color:var(--text-muted)">—</span>';
+    let parsed = typeof akses === 'string' ? JSON.parse(akses) : akses;
+    const aktif = Object.entries(parsed).filter(([,v]) => v).map(([k]) => LABEL_AKSES[k] || k);
+    if (!aktif.length) return '<span style="font-size:11px;color:var(--text-muted)">Tidak ada akses</span>';
+    return aktif.map(l => `<span style="font-size:11px;background:#f0f7f3;color:var(--primary);padding:2px 7px;border-radius:10px;margin-right:3px;white-space:nowrap">${l}</span>`).join('');
+  }
+
   async function loadUser() {
     try {
       const res = await fetch('/api/admin/users', { headers: authHeader() });
@@ -1262,21 +1364,44 @@
       const tbody = document.getElementById('tabelUser');
       const myId = parseInt(localStorage.getItem('balirent_admin_id') || '0');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px">Belum ada user.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Belum ada user.</td></tr>';
         return;
       }
-      tbody.innerHTML = json.data.map(u => `
-        <tr>
-          <td>#${u.id}</td>
-          <td><strong>${u.username}</strong>${u.id === myId ? ' <span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-weight:600">Anda</span>' : ''}</td>
-          <td style="color:var(--text-muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('id-ID', {day:'2-digit',month:'long',year:'numeric'})}</td>
-          <td style="display:flex;gap:6px">
-            <button class="btn btn-outline btn-sm" onclick="bukaModalEditUser(${u.id},'${u.username}')">Edit</button>
-            ${u.id !== myId ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none" onclick="hapusUser(${u.id},'${u.username}')">Hapus</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = json.data.map(u => {
+        const isSelf = u.id === myId;
+        const roleBadge = u.role === 'superadmin'
+          ? '<span style="font-size:11px;background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-weight:600">⭐ Superadmin</span>'
+          : '<span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-weight:600">👤 Staff</span>';
+        return `
+          <tr>
+            <td>#${u.id}</td>
+            <td><strong>${u.username}</strong>${isSelf ? ' <span style="font-size:11px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-weight:600">Anda</span>' : ''}</td>
+            <td>${roleBadge}</td>
+            <td>${u.role === 'superadmin' ? '<span style="font-size:11px;color:var(--text-muted)">Semua fitur</span>' : badgeAkses(u.akses)}</td>
+            <td style="color:var(--text-muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</td>
+            <td style="display:flex;gap:6px">
+              <button class="btn btn-outline btn-sm" onclick="bukaModalEditUser(${u.id},'${u.username}','${u.role}',${JSON.stringify(JSON.stringify(u.akses))})">Edit</button>
+              ${!isSelf ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none" onclick="hapusUser(${u.id},'${u.username}')">Hapus</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
     } catch(e) {}
+  }
+
+  function toggleAksesSection() {
+    const role = document.getElementById('uRole').value;
+    document.getElementById('aksesSection').style.display = role === 'staff' ? 'block' : 'none';
+  }
+
+  function resetAksesCheckboxes(akses) {
+    const fields = ['kendaraan','artikel','pemesanan','stats'];
+    let parsed = {};
+    if (akses) { try { parsed = typeof akses === 'string' ? JSON.parse(akses) : akses; } catch(e) {} }
+    fields.forEach(f => {
+      const el = document.getElementById('akses' + f.charAt(0).toUpperCase() + f.slice(1));
+      if (el) el.checked = !!(parsed[f]);
+    });
   }
 
   function bukaModalTambahUser() {
@@ -1284,22 +1409,29 @@
     document.getElementById('uId').value = '';
     document.getElementById('uUsername').value = '';
     document.getElementById('uPassword').value = '';
+    document.getElementById('uRole').value = 'superadmin';
     document.getElementById('uPasswordLabel').textContent = 'Password *';
     document.getElementById('uPasswordHint').style.display = 'none';
     document.getElementById('uPassword').placeholder = 'Minimal 6 karakter';
     document.getElementById('alertModalUser').className = 'alert';
+    document.getElementById('aksesSection').style.display = 'none';
+    resetAksesCheckboxes(null);
     document.getElementById('modalUser').classList.add('show');
   }
 
-  function bukaModalEditUser(id, username) {
+  function bukaModalEditUser(id, username, role, aksesStr) {
     document.getElementById('modalUserTitle').textContent = 'Edit User Admin';
     document.getElementById('uId').value = id;
     document.getElementById('uUsername').value = username;
     document.getElementById('uPassword').value = '';
+    document.getElementById('uRole').value = role || 'superadmin';
     document.getElementById('uPasswordLabel').textContent = 'Password Baru';
     document.getElementById('uPasswordHint').style.display = 'block';
     document.getElementById('uPassword').placeholder = 'Kosongkan jika tidak ingin diubah';
     document.getElementById('alertModalUser').className = 'alert';
+    const akses = aksesStr && aksesStr !== 'null' ? JSON.parse(aksesStr) : null;
+    document.getElementById('aksesSection').style.display = role === 'staff' ? 'block' : 'none';
+    resetAksesCheckboxes(akses);
     document.getElementById('modalUser').classList.add('show');
   }
 
@@ -1309,13 +1441,28 @@
     const id = document.getElementById('uId').value;
     const username = document.getElementById('uUsername').value.trim();
     const password = document.getElementById('uPassword').value;
+    const role = document.getElementById('uRole').value;
     const alertEl = document.getElementById('alertModalUser');
 
     if (!username) { alertEl.textContent = 'Username wajib diisi'; alertEl.className = 'alert alert-error show'; return; }
     if (!id && !password) { alertEl.textContent = 'Password wajib diisi untuk user baru'; alertEl.className = 'alert alert-error show'; return; }
 
-    const body = { username };
+    let akses = null;
+    if (role === 'staff') {
+      akses = {
+        kendaraan: document.getElementById('aksesKendaraan').checked,
+        artikel: document.getElementById('aksesArtikel').checked,
+        pemesanan: document.getElementById('aksesPemesanan').checked,
+        stats: document.getElementById('aksesStats').checked,
+      };
+      if (!Object.values(akses).some(Boolean)) {
+        alertEl.textContent = 'Pilih minimal satu akses fitur untuk staff'; alertEl.className = 'alert alert-error show'; return;
+      }
+    }
+
+    const body = { username, role };
     if (password) body.password = password;
+    if (akses) body.akses = akses;
 
     try {
       const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
@@ -1342,12 +1489,14 @@
   function logout() {
     localStorage.removeItem('balirent_token');
     localStorage.removeItem('balirent_admin');
+    localStorage.removeItem('balirent_admin_info');
     localStorage.removeItem('balirent_expiry');
     localStorage.removeItem('balirent_admin_id');
     location.href = 'login.html';
   }
 
   // Init
+  applyAksesUI();
   loadStats();
   loadPemesanan();
   initFilterTahunChart();
