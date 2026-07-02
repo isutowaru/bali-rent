@@ -5,6 +5,14 @@ const path = require('path');
 const { pool } = require('../db');
 const auth = require('../middleware/auth');
 
+// Middleware: cek akses kendaraan (superadmin atau staff dengan akses kendaraan)
+function cekAksesKendaraan(req, res, next) {
+  const role = req.admin.role || 'superadmin';
+  if (role === 'superadmin') return next();
+  if (req.admin.akses && req.admin.akses.kendaraan) return next();
+  return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses untuk mengelola kendaraan' });
+}
+
 // Setup upload foto
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../uploads')),
@@ -79,7 +87,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST tambah kendaraan (admin)
-router.post('/', auth, upload.single('foto'), async (req, res) => {
+router.post('/', auth, cekAksesKendaraan, upload.single('foto'), async (req, res) => {
   try {
     const { nama, jenis, harga_per_hari, stok, deskripsi } = req.body;
     if (!nama || !jenis || !harga_per_hari) {
@@ -97,7 +105,7 @@ router.post('/', auth, upload.single('foto'), async (req, res) => {
 });
 
 // PUT update kendaraan (admin)
-router.put('/:id', auth, upload.single('foto'), async (req, res) => {
+router.put('/:id', auth, cekAksesKendaraan, upload.single('foto'), async (req, res) => {
   try {
     const { nama, jenis, harga_per_hari, stok, deskripsi, tersedia } = req.body;
     const [existing] = await pool.query('SELECT * FROM kendaraan WHERE id = ?', [req.params.id]);
@@ -124,7 +132,7 @@ router.put('/:id', auth, upload.single('foto'), async (req, res) => {
 });
 
 // DELETE kendaraan (admin)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, cekAksesKendaraan, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM kendaraan WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Kendaraan tidak ditemukan' });

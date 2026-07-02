@@ -742,7 +742,7 @@
           <td>#${p.id}</td>
           <td><strong>${hlNama}</strong><br><span style="font-size:12px;color:var(--text-muted)">${hlHp}</span></td>
           <td>${p.nama_kendaraan}</td>
-          <td>${p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'}</td>
+          <td>${p.tanggal_mulai ? new Date(p.tanggal_mulai.toString().includes('T') ? p.tanggal_mulai : p.tanggal_mulai + 'T12:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'}</td>
           <td>${p.lama_sewa} hari</td>
           <td>Rp ${Number(p.total_harga).toLocaleString('id-ID')}</td>
           <td><span class="badge badge-${p.status}">${p.status}</span></td>
@@ -1305,9 +1305,16 @@
   // =============================================
 
   function getAdminInfo() {
+    // Decode JWT payload langsung dari token — tidak bergantung pada balirent_admin_info
+    // sehingga user yang login sebelum update pun tetap bisa dapat role-nya
     try {
-      return JSON.parse(localStorage.getItem('balirent_admin_info') || '{}');
-    } catch(e) { return {}; }
+      if (!token) return {};
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return { role: payload.role || 'superadmin', akses: payload.akses || null };
+    } catch(e) {
+      // Fallback: baca dari localStorage jika JWT tidak bisa didecode
+      try { return JSON.parse(localStorage.getItem('balirent_admin_info') || '{}'); } catch(e2) { return {}; }
+    }
   }
 
   function hasAkses(fitur) {
@@ -1321,25 +1328,34 @@
   // Sesuaikan tab & elemen yang tampil berdasarkan role/akses
   function applyAksesUI() {
     const info = getAdminInfo();
+    // Jika role tidak diketahui (token lama / gagal decode) → tampilkan semua, jangan sembunyikan apapun
+    if (!info.role) return;
+
     const isSuperadmin = info.role === 'superadmin';
+    // Superadmin punya akses penuh — tidak perlu sembunyikan apapun
+    if (isSuperadmin) return;
 
-    // Tab visibility
-    if (!hasAkses('kendaraan') && !isSuperadmin) document.getElementById('tabKendaraan').style.display = 'none';
-    if (!hasAkses('artikel') && !isSuperadmin) document.getElementById('tabArtikel').style.display = 'none';
-    if (!hasAkses('pemesanan') && !isSuperadmin) document.getElementById('tabPemesanan').style.display = 'none';
-    // Tab user hanya superadmin
-    if (!isSuperadmin) document.getElementById('tabUser').style.display = 'none';
-
-    // Tombol tambah user hanya superadmin
+    // Staff — sembunyikan fitur yang tidak punya akses
+    if (!info.akses?.kendaraan) document.getElementById('tabKendaraan').style.display = 'none';
+    if (!info.akses?.artikel)   document.getElementById('tabArtikel').style.display = 'none';
+    if (!info.akses?.pemesanan) document.getElementById('tabPemesanan').style.display = 'none';
+    // Tab user selalu disembunyikan untuk staff
+    document.getElementById('tabUser').style.display = 'none';
     const btnTambah = document.getElementById('btnTambahUser');
-    if (btnTambah && !isSuperadmin) btnTambah.style.display = 'none';
+    if (btnTambah) btnTambah.style.display = 'none';
 
     // Statistik & grafik
-    if (!hasAkses('stats') && !isSuperadmin) {
+    if (!info.akses?.stats) {
       const statsGrid = document.querySelector('.stats-grid');
       const grafikCard = document.getElementById('chartPendapatan')?.closest('.table-card');
       if (statsGrid) statsGrid.style.display = 'none';
       if (grafikCard) grafikCard.style.display = 'none';
+    }
+
+    // Jika tab pemesanan disembunyikan, auto-switch ke tab pertama yang tersedia
+    if (!info.akses?.pemesanan) {
+      if (info.akses?.kendaraan) showTab('kendaraan');
+      else if (info.akses?.artikel) showTab('artikel');
     }
   }
 
@@ -1380,7 +1396,12 @@
             <td>${u.role === 'superadmin' ? '<span style="font-size:11px;color:var(--text-muted)">Semua fitur</span>' : badgeAkses(u.akses)}</td>
             <td style="color:var(--text-muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</td>
             <td style="display:flex;gap:6px">
-              <button class="btn btn-outline btn-sm" onclick="bukaModalEditUser(${u.id},'${u.username}','${u.role}',${JSON.stringify(JSON.stringify(u.akses))})">Edit</button>
+              <button class="btn btn-outline btn-sm"
+                data-id="${u.id}"
+                data-username="${u.username}"
+                data-role="${u.role || 'superadmin'}"
+                data-akses='${JSON.stringify(u.akses || null)}'
+                onclick="bukaModalEditUserBtn(this)">Edit</button>
               ${!isSelf ? `<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none" onclick="hapusUser(${u.id},'${u.username}')">Hapus</button>` : ''}
             </td>
           </tr>
@@ -1419,7 +1440,16 @@
     document.getElementById('modalUser').classList.add('show');
   }
 
-  function bukaModalEditUser(id, username, role, aksesStr) {
+  function bukaModalEditUserBtn(btn) {
+    const id = btn.dataset.id;
+    const username = btn.dataset.username;
+    const role = btn.dataset.role;
+    let akses = null;
+    try { akses = JSON.parse(btn.dataset.akses); } catch(e) {}
+    bukaModalEditUser(id, username, role, akses);
+  }
+
+  function bukaModalEditUser(id, username, role, akses) {
     document.getElementById('modalUserTitle').textContent = 'Edit User Admin';
     document.getElementById('uId').value = id;
     document.getElementById('uUsername').value = username;
@@ -1429,7 +1459,6 @@
     document.getElementById('uPasswordHint').style.display = 'block';
     document.getElementById('uPassword').placeholder = 'Kosongkan jika tidak ingin diubah';
     document.getElementById('alertModalUser').className = 'alert';
-    const akses = aksesStr && aksesStr !== 'null' ? JSON.parse(aksesStr) : null;
     document.getElementById('aksesSection').style.display = role === 'staff' ? 'block' : 'none';
     resetAksesCheckboxes(akses);
     document.getElementById('modalUser').classList.add('show');

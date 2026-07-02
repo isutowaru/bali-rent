@@ -5,6 +5,14 @@ const path = require('path');
 const { pool } = require('../db');
 const auth = require('../middleware/auth');
 
+// Middleware: cek akses artikel
+function cekAksesArtikel(req, res, next) {
+  const role = req.admin.role || 'superadmin';
+  if (role === 'superadmin') return next();
+  if (req.admin.akses && req.admin.akses.artikel) return next();
+  return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses untuk mengelola artikel' });
+}
+
 // Setup upload gambar artikel
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../uploads')),
@@ -56,7 +64,7 @@ async function slugUnik(slug, excludeId = null) {
 }
 
 // POST upload gambar untuk disisipkan ke dalam konten artikel (admin, dipakai oleh editor)
-router.post('/upload-gambar', auth, upload.single('gambar'), async (req, res) => {
+router.post('/upload-gambar', auth, cekAksesArtikel, upload.single('gambar'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Tidak ada file gambar' });
   res.json({ success: true, url: `/uploads/${req.file.filename}` });
 });
@@ -74,7 +82,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET semua artikel untuk admin (termasuk draft)
-router.get('/admin/semua', auth, async (req, res) => {
+router.get('/admin/semua', auth, cekAksesArtikel, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM artikel ORDER BY created_at DESC');
     res.json({ success: true, data: rows });
@@ -95,7 +103,7 @@ router.get('/slug/:slug', async (req, res) => {
 });
 
 // GET detail artikel berdasarkan id (admin)
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, cekAksesArtikel, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM artikel WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
@@ -106,7 +114,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // POST tambah artikel (admin)
-router.post('/', auth, upload.single('gambar'), async (req, res) => {
+router.post('/', auth, cekAksesArtikel, upload.single('gambar'), async (req, res) => {
   try {
     const { judul, ringkasan, konten, status } = req.body;
     if (!judul || !konten) {
@@ -126,7 +134,7 @@ router.post('/', auth, upload.single('gambar'), async (req, res) => {
 });
 
 // PUT update artikel (admin)
-router.put('/:id', auth, upload.single('gambar'), async (req, res) => {
+router.put('/:id', auth, cekAksesArtikel, upload.single('gambar'), async (req, res) => {
   try {
     const { judul, ringkasan, konten, status } = req.body;
     const [existing] = await pool.query('SELECT * FROM artikel WHERE id = ?', [req.params.id]);
@@ -157,7 +165,7 @@ router.put('/:id', auth, upload.single('gambar'), async (req, res) => {
 });
 
 // DELETE artikel (admin)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, cekAksesArtikel, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM artikel WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Artikel tidak ditemukan' });
