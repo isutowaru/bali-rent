@@ -112,7 +112,6 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
     @media (max-width: 768px) {
-      .sidebar { display: none; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -121,33 +120,21 @@
 <body>
 
 <div class="admin-layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-brand" style="padding:0 16px 24px">
-      <div style="background:white;border-radius:8px;padding:8px 12px;display:inline-block">
-        <img src="../images/logo.png" alt="Bali Rent" style="height:100px;object-fit:contain;display:block">
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="#" class="active" onclick="showTab('pemesanan')"><i class="fa-solid fa-clipboard-list" style="width:16px;text-align:center"></i> Pemesanan</a>
-      <a href="#" onclick="showTab('kendaraan')"><i class="fa-solid fa-car-side" style="width:16px;text-align:center"></i> Kendaraan</a>
-      <a href="#" onclick="showTab('artikel')"><i class="fa-solid fa-newspaper" style="width:16px;text-align:center"></i> Artikel</a>
-      <a href="#" onclick="showTab('user')"><i class="fa-solid fa-user" style="width:16px;text-align:center"></i> User Admin</a>
-      <a href="../index.html" target="_blank"><i class="fa-solid fa-globe" style="width:16px;text-align:center"></i> Lihat Website</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px">Login sebagai: <strong id="adminName" style="color:rgba(255,255,255,0.8)">-</strong></div>
-      <button onclick="logout()"><i class="fa-solid fa-right-from-bracket" style="margin-right:6px"></i>Keluar</button>
-    </div>
-  </aside>
-
   <!-- Main Content -->
-  <div class="main-content">
-    <div class="top-bar">
-      <h1 id="pageTitle">Dashboard</h1>
+  <div class="main-content" style="width:100%">
+    <div class="top-bar" style="flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="background:var(--primary-dark);border-radius:8px;padding:4px 10px;display:inline-flex">
+          <img src="../images/logo.png" alt="Bali Rent" style="height:40px;object-fit:contain;display:block">
+        </div>
+        <h1 id="pageTitle">Dashboard</h1>
+      </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span class="session-timer" id="sessionTimer"><i class="fa-regular fa-clock"></i> Sesi: --:--:--</span>
         <div class="admin-info" id="adminInfo">-</div>
+        <a href="../index.html" target="_blank" style="font-size:13px;font-weight:600;color:var(--text-muted);text-decoration:none"><i class="fa-solid fa-globe"></i> Lihat Website</a>
+        <div style="font-size:12px;color:var(--text-muted)">Login sebagai: <strong id="adminName">-</strong></div>
+        <button onclick="logout()" class="btn" style="padding:6px 12px;font-size:13px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca"><i class="fa-solid fa-right-from-bracket" style="margin-right:6px"></i>Keluar</button>
       </div>
     </div>
     <div class="content-area">
